@@ -38,6 +38,10 @@
 *.zip
 *.png
 *.PNG
+*.jpg
+*.JPG
+*.jpeg
+*.gif
 !Tools/autotest/tilecache/**/*.zip
 *~
 .*.swo
