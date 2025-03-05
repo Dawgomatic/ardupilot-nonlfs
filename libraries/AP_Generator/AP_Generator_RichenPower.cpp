@@ -13,11 +13,9 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "AP_Generator_config.h"
+#include "AP_Generator_RichenPower.h"
 
 #if AP_GENERATOR_RICHENPOWER_ENABLED
-
-#include "AP_Generator_RichenPower.h"
 
 #include <AP_Logger/AP_Logger.h>
 #include <AP_SerialManager/AP_SerialManager.h>
@@ -125,7 +123,7 @@ bool AP_Generator_RichenPower::get_reading()
     const uint8_t minor = (version % 100) / 10;
     const uint8_t point = version % 10;
     if (!protocol_information_anounced) {
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "RichenPower: protocol %u.%u.%u", major, minor, point);
+        gcs().send_text(MAV_SEVERITY_INFO, "RichenPower: protocol %u.%u.%u", major, minor, point);
         protocol_information_anounced = true;
     }
 
@@ -212,7 +210,7 @@ void AP_Generator_RichenPower::check_maintenance_required()
 
         if (last_reading.errors & (1U<<uint16_t(Errors::MaintenanceRequired))) {
             if (now - last_maintenance_warning_ms > 60000) {
-                GCS_SEND_TEXT(MAV_SEVERITY_NOTICE, "Generator: requires maintenance");
+                gcs().send_text(MAV_SEVERITY_NOTICE, "Generator: requires maintenance");
                 last_maintenance_warning_ms = now;
             }
         }
@@ -267,7 +265,7 @@ void AP_Generator_RichenPower::update_runstate()
     // because the vehicle is crashed.
     if (AP::vehicle()->is_crashed()) {
         if (!vehicle_was_crashed) {
-            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Crash; stopping generator");
+            gcs().send_text(MAV_SEVERITY_INFO, "Crash; stopping generator");
             pilot_desired_runstate = RunState::STOP;
             vehicle_was_crashed = true;
         }

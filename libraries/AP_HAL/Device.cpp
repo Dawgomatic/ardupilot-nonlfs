@@ -16,7 +16,6 @@
 #include "Device.h"
 
 #include <stdio.h>
-#include <AP_Common/AP_Common.h>
 
 /*
   using checked registers allows a device check that a set of critical
@@ -45,7 +44,7 @@ bool AP_HAL::Device::setup_checked_registers(uint8_t nregs, uint8_t frequency)
         _checked.n_set = 0;
         _checked.next = 0;
     }
-    _checked.regs = NEW_NOTHROW struct checkreg[nregs];
+    _checked.regs = new struct checkreg[nregs];
     if (_checked.regs == nullptr) {
         return false;
     }

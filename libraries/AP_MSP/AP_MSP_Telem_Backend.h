@@ -57,7 +57,7 @@ public:
         int32_t lon;
         uint16_t alt_m;
         uint16_t speed_cms;
-        uint16_t ground_course_dd;
+        int16_t ground_course_cd;
     } gps_state_t;
 
     typedef struct airspeed_state_s {

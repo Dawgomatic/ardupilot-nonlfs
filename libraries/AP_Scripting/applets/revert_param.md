@@ -47,7 +47,9 @@ The script covers the following parameters on quadplanes:
  - Q_A_ANG_RLL_P
  - Q_A_ANG_PIT_P
  - Q_A_ANG_YAW_P
- - Q_A_RATE_*_MAX
+ - RLL_RATE_*
+ - PTCH_RATE_*
+ - YAW_RATE_*
  - Q_P_ACCZ_*
  - Q_P_VELZ_*
  - Q_P_POSZ_*
@@ -62,17 +64,8 @@ The script covers the following parameters on copters:
  - ATC_ANG_RLL_P
  - ATC_ANG_PIT_P
  - ATC_ANG_YAW_P
- - ATC_RATE_*_MAX
  - PSC_ACCZ_*
  - PSC_VELZ_*
  - PSC_POSZ_*
  - PSC_VELXY_*
  - PSC_POSXY_*
-
-For fixed wing the following parameters are covered:
-
- - RLL_RATE_*
- - PTCH_RATE_*
- - RLL2SRV_TCONST
- - PTCH2SRV_TCONST
- - all TECS parameters

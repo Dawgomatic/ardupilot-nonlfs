@@ -13,10 +13,6 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "AC_Avoidance_config.h"
-
-#if AP_OAPATHPLANNER_BENDYRULER_ENABLED
-
 #include "AP_OABendyRuler.h"
 #include <AC_Avoidance/AP_OADatabase.h>
 #include <AC_Fence/AC_Fence.h>
@@ -712,5 +708,3 @@ bool AP_OABendyRuler::calc_margin_from_object_database(const Location &start, co
 
     return false;
 }
-
-#endif  // AP_OAPATHPLANNER_BENDYRULER_ENABLED

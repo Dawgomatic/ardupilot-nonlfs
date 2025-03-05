@@ -11,7 +11,6 @@
 #include <AP_Common/Location.h>
 #include <AP_Compass/AP_Compass.h>
 #include <AP_InertialSensor/AP_InertialSensor.h>
-
 #include "SIM_Buzzer.h"
 #include "SIM_Gripper_EPM.h"
 #include "SIM_Gripper_Servo.h"
@@ -27,7 +26,6 @@
 #include "SIM_FETtecOneWireESC.h"
 #include "SIM_IntelligentEnergy24.h"
 #include "SIM_Ship.h"
-#include "SIM_SlungPayload.h"
 #include "SIM_GPS.h"
 #include "SIM_DroneCANDevice.h"
 #include "SIM_ADSB_Sagetech_MXS.h"
@@ -48,10 +46,7 @@ struct float_array {
     uint16_t length;
     float *data;
 };
-
-class StratoBlimp;
-class Glider;
-class FlightAxis;
+    
 
 struct sitl_fdm {
     // this is the structure passed between FDM models and the main SITL code
@@ -65,8 +60,8 @@ struct sitl_fdm {
     double rollRate, pitchRate, yawRate; // degrees/s in body frame
     double rollDeg, pitchDeg, yawDeg;    // euler angles, degrees
     Quaternion quaternion;
-    double airspeed; // m/s, EAS
-    Vector3f velocity_air_bf; // velocity relative to airmass, body frame, TAS
+    double airspeed; // m/s
+    Vector3f velocity_air_bf; // velocity relative to airmass, body frame
     double battery_voltage; // Volts
     double battery_current; // Amps
     double battery_remaining; // Ah, if non-zero capacity
@@ -186,6 +181,7 @@ public:
     AP_Int8 mag_orient[HAL_COMPASS_MAX_SENSORS];   // external compass orientation
     AP_Int8 mag_fail[HAL_COMPASS_MAX_SENSORS];   // fail magnetometer, 1 for no data, 2 for freeze
     AP_Int8 mag_save_ids;
+    AP_Float servo_speed; // servo speed in seconds
 
     AP_Float sonar_glitch;// probability between 0-1 that any given sonar sample will read as max distance
     AP_Float sonar_noise; // in metres
@@ -231,9 +227,8 @@ public:
 
 #if HAL_NUM_CAN_IFACES
     enum class CANTransport : uint8_t {
-      None = 0,
-      MulticastUDP = 1,
-      SocketCAN = 2,
+      MulticastUDP = 0,
+      SocketCAN = 1
     };
     AP_Enum<CANTransport> can_transport[HAL_NUM_CAN_IFACES];
 #endif
@@ -299,40 +294,6 @@ public:
         AP_Int8  signflip;
     };
     AirspeedParm airspeed[AIRSPEED_MAX_SENSORS];
-
-    class ServoParams {
-    public:
-        ServoParams(void) {
-            AP_Param::setup_object_defaults(this, var_info);
-        }
-        static const struct AP_Param::GroupInfo var_info[];
-        AP_Float servo_speed; // servo speed in seconds per 60 degrees
-        AP_Float servo_delay; // servo delay in seconds
-        AP_Float servo_filter; // servo 2p filter in Hz
-    };
-    ServoParams servo;
-    
-    // physics model parameters
-    class ModelParm {
-    public:
-        static const struct AP_Param::GroupInfo var_info[];
-#if AP_SIM_STRATOBLIMP_ENABLED
-        StratoBlimp *stratoblimp_ptr;
-#endif
-#if AP_SIM_SHIP_ENABLED
-        ShipSim shipsim;
-#endif
-#if AP_SIM_GLIDER_ENABLED
-        Glider *glider_ptr;
-#endif
-#if AP_SIM_SLUNGPAYLOAD_ENABLED
-        SlungPayloadSim slung_payload_sim;
-#endif
-#if AP_SIM_FLIGHTAXIS_ENABLED
-        FlightAxis *flightaxis_ptr;
-#endif
-    };
-    ModelParm models;
     
     // EFI type
     enum EFIType {
@@ -358,7 +319,6 @@ public:
     AP_Float wind_direction;
     AP_Float wind_turbulance;
     AP_Float wind_dir_z;
-    AP_Float wind_change_tc;
     AP_Int8  wind_type; // enum WindLimitType
     AP_Float wind_type_alt;
     AP_Float wind_type_coef;
@@ -456,7 +416,6 @@ public:
     } opos;
 
     uint16_t irlock_port;
-    uint16_t rcin_port;
 
     time_t start_time_UTC;
 
@@ -482,6 +441,11 @@ public:
     }
 
     Sprayer sprayer_sim;
+
+    // simulated ship takeoffs
+#if AP_SIM_SHIP_ENABLED
+    ShipSim shipsim;
+#endif
 
     Gripper_Servo gripper_sim;
     Gripper_EPM gripper_epm_sim;
@@ -563,9 +527,6 @@ public:
     // Master instance to use servos from with slave instances
     AP_Int8 ride_along_master;
 
-    // clamp simulation - servo channel starting at offset 1 (usually ailerons)
-    AP_Int8 clamp_ch;
-
 #if AP_SIM_INS_FILE_ENABLED
     enum INSFileMode {
         INS_FILE_NONE = 0,
@@ -576,16 +537,6 @@ public:
     AP_Int8 gyro_file_rw;
     AP_Int8 accel_file_rw;
 #endif
-
-#ifdef WITH_SITL_OSD
-    AP_Int16 osd_rows;
-    AP_Int16 osd_columns;
-#endif
-
-    // Allow inhibiting of SITL only sim state messages over MAVLink
-    // This gives more realistic data rates for testing links
-    void set_stop_MAVLink_sim_state() { stop_MAVLink_sim_state = true; }
-    bool stop_MAVLink_sim_state;
 };
 
 } // namespace SITL

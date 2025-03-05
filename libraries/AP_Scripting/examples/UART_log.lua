@@ -3,7 +3,7 @@
 -- find the serial first (0) scripting serial port instance
 local port = serial:find_serial(0)
 
-if not port then
+if not port or baud == 0 then
     gcs:send_text(0, "No Scripting Serial Port")
     return
 end

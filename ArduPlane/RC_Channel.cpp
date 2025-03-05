@@ -1,7 +1,6 @@
 #include "Plane.h"
 
 #include "RC_Channel.h"
-#include "qautotune.h"
 
 // defining these two macros and including the RC_Channels_VarInfo
 // header defines the parameter information common to all vehicle
@@ -44,7 +43,7 @@ void RC_Channel_Plane::do_aux_function_change_mode(const Mode::Number number,
     switch(ch_flag) {
     case AuxSwitchPos::HIGH: {
         // engage mode (if not possible we remain in current flight mode)
-        plane.set_mode_by_number(number, ModeReason::AUX_FUNCTION);
+        plane.set_mode_by_number(number, ModeReason::RC_COMMAND);
         break;
     }
     default:
@@ -62,17 +61,17 @@ void RC_Channel_Plane::do_aux_function_q_assist_state(AuxSwitchPos ch_flag)
     switch(ch_flag) {
         case AuxSwitchPos::HIGH:
             gcs().send_text(MAV_SEVERITY_INFO, "QAssist: Force enabled");
-            plane.quadplane.assist.set_state(VTOL_Assist::STATE::FORCE_ENABLED);
+            plane.quadplane.set_q_assist_state(plane.quadplane.Q_ASSIST_STATE_ENUM::Q_ASSIST_FORCE);
             break;
 
         case AuxSwitchPos::MIDDLE:
             gcs().send_text(MAV_SEVERITY_INFO, "QAssist: Enabled");
-            plane.quadplane.assist.set_state(VTOL_Assist::STATE::ASSIST_ENABLED);
+            plane.quadplane.set_q_assist_state(plane.quadplane.Q_ASSIST_STATE_ENUM::Q_ASSIST_ENABLED);
             break;
 
         case AuxSwitchPos::LOW:
             gcs().send_text(MAV_SEVERITY_INFO, "QAssist: Disabled");
-            plane.quadplane.assist.set_state(VTOL_Assist::STATE::ASSIST_DISABLED);
+            plane.quadplane.set_q_assist_state(plane.quadplane.Q_ASSIST_STATE_ENUM::Q_ASSIST_DISABLED);
             break;
     }
 }
@@ -96,9 +95,9 @@ void RC_Channel_Plane::do_aux_function_crow_mode(AuxSwitchPos ch_flag)
         }    
 }
 
-#if HAL_SOARING_ENABLED
 void RC_Channel_Plane::do_aux_function_soaring_3pos(AuxSwitchPos ch_flag)
 {
+#if HAL_SOARING_ENABLED
     SoaringController::ActiveStatus desired_state = SoaringController::ActiveStatus::SOARING_DISABLED;
 
     switch (ch_flag) {
@@ -114,26 +113,35 @@ void RC_Channel_Plane::do_aux_function_soaring_3pos(AuxSwitchPos ch_flag)
         }
 
     plane.g2.soaring_controller.set_pilot_desired_state(desired_state);
-}
 #endif
+}
 
 void RC_Channel_Plane::do_aux_function_flare(AuxSwitchPos ch_flag)
 {
         switch(ch_flag) {
         case AuxSwitchPos::HIGH:
             plane.flare_mode = Plane::FlareMode::ENABLED_PITCH_TARGET;
+#if HAL_QUADPLANE_ENABLED
+            plane.quadplane.set_q_assist_state(plane.quadplane.Q_ASSIST_STATE_ENUM::Q_ASSIST_DISABLED);
+#endif
             break;
         case AuxSwitchPos::MIDDLE:
             plane.flare_mode = Plane::FlareMode::ENABLED_NO_PITCH_TARGET;
+#if HAL_QUADPLANE_ENABLED
+            plane.quadplane.set_q_assist_state(plane.quadplane.Q_ASSIST_STATE_ENUM::Q_ASSIST_DISABLED);
+#endif
             break;
         case AuxSwitchPos::LOW:
+#if HAL_QUADPLANE_ENABLED
+            plane.quadplane.set_q_assist_state(plane.quadplane.Q_ASSIST_STATE_ENUM::Q_ASSIST_ENABLED);
+#endif
             plane.flare_mode = Plane::FlareMode::FLARE_DISABLED;
             break;
         }    
 }
 
 
-void RC_Channel_Plane::init_aux_function(const RC_Channel::AUX_FUNC ch_option,
+void RC_Channel_Plane::init_aux_function(const RC_Channel::aux_func_t ch_option,
                                          const RC_Channel::AuxSwitchPos ch_flag)
 {
     switch(ch_option) {
@@ -158,9 +166,7 @@ void RC_Channel_Plane::init_aux_function(const RC_Channel::AUX_FUNC ch_option,
     case AUX_FUNC::FBWA_TAILDRAGGER:
     case AUX_FUNC::FWD_THR:
     case AUX_FUNC::LANDING_FLARE:
-#if HAL_PARACHUTE_ENABLED
     case AUX_FUNC::PARACHUTE_RELEASE:
-#endif
     case AUX_FUNC::MODE_SWITCH_RESET:
     case AUX_FUNC::CRUISE:
 #if HAL_QUADPLANE_ENABLED
@@ -172,15 +178,6 @@ void RC_Channel_Plane::init_aux_function(const RC_Channel::AUX_FUNC ch_option,
     case AUX_FUNC::FW_AUTOTUNE:
     case AUX_FUNC::VFWD_THR_OVERRIDE:
     case AUX_FUNC::PRECISION_LOITER:
-#if AP_ICENGINE_ENABLED
-    case AUX_FUNC::ICE_START_STOP:
-#endif
-#if QAUTOTUNE_ENABLED
-    case AUX_FUNC::AUTOTUNE_TEST_GAINS:
-#endif
-#if AP_QUICKTUNE_ENABLED
-    case AUX_FUNC::QUICKTUNE:
-#endif
         break;
 
     case AUX_FUNC::SOARING:
@@ -216,7 +213,7 @@ void RC_Channel_Plane::init_aux_function(const RC_Channel::AUX_FUNC ch_option,
 }
 
 // do_aux_function - implement the function invoked by auxiliary switches
-bool RC_Channel_Plane::do_aux_function(const AUX_FUNC ch_option, const AuxSwitchPos ch_flag)
+bool RC_Channel_Plane::do_aux_function(const aux_func_t ch_option, const AuxSwitchPos ch_flag)
 {
     switch(ch_option) {
     case AUX_FUNC::INVERTED:
@@ -287,18 +284,13 @@ bool RC_Channel_Plane::do_aux_function(const AUX_FUNC ch_option, const AuxSwitch
     }
 #endif
 
-#if HAL_SOARING_ENABLED
     case AUX_FUNC::SOARING:
         do_aux_function_soaring_3pos(ch_flag);
         break;
-#endif
 
     case AUX_FUNC::FLAP:
     case AUX_FUNC::FBWA_TAILDRAGGER:
     case AUX_FUNC::AIRBRAKE:
-#if AP_ICENGINE_ENABLED
-    case AUX_FUNC::ICE_START_STOP:
-#endif
         break; // input labels, nothing to do
 
 #if HAL_QUADPLANE_ENABLED
@@ -350,8 +342,8 @@ bool RC_Channel_Plane::do_aux_function(const AUX_FUNC ch_option, const AuxSwitch
         break;
 #endif
 
-#if AP_AIRSPEED_AUTOCAL_ENABLE
     case AUX_FUNC::ARSPD_CALIBRATE:
+#if AP_AIRSPEED_AUTOCAL_ENABLE
         switch (ch_flag) {
         case AuxSwitchPos::HIGH:
             plane.airspeed.set_calibration_enabled(true);
@@ -362,20 +354,20 @@ bool RC_Channel_Plane::do_aux_function(const AUX_FUNC ch_option, const AuxSwitch
             plane.airspeed.set_calibration_enabled(false);
             break;
         }
-        break;
 #endif
+        break;
 
     case AUX_FUNC::LANDING_FLARE:
         do_aux_function_flare(ch_flag);
         break;
 
-#if HAL_PARACHUTE_ENABLED
     case AUX_FUNC::PARACHUTE_RELEASE:
+#if PARACHUTE == ENABLED
         if (ch_flag == AuxSwitchPos::HIGH) {
             plane.parachute_manual_release();
         }
-        break;
 #endif
+        break;
 
     case AUX_FUNC::MODE_SWITCH_RESET:
         rc().reset_mode_switch();
@@ -455,18 +447,6 @@ bool RC_Channel_Plane::do_aux_function(const AUX_FUNC ch_option, const AuxSwitch
     case AUX_FUNC::PRECISION_LOITER:
         // handled by lua scripting, just ignore here
         break;
-
-#if QAUTOTUNE_ENABLED
-    case AUX_FUNC::AUTOTUNE_TEST_GAINS:
-        plane.quadplane.qautotune.do_aux_function(ch_flag);
-        break;
-#endif
-
-#if AP_QUICKTUNE_ENABLED
-    case AUX_FUNC::QUICKTUNE:
-        plane.quicktune.update_switch_pos(ch_flag);
-        break;
-#endif
 
     default:
         return RC_Channel::do_aux_function(ch_option, ch_flag);

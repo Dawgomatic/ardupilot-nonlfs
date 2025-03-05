@@ -131,11 +131,6 @@ void Tracker::update_tracking(void)
  */
 void Tracker::tracking_update_position(const mavlink_global_position_int_t &msg)
 {
-    // reject (0;0) coordinates
-    if (!msg.lat && !msg.lon) {
-        return;
-    }
-
     vehicle.location.lat = msg.lat;
     vehicle.location.lng = msg.lon;
     vehicle.location.alt = msg.alt/10;
@@ -144,7 +139,7 @@ void Tracker::tracking_update_position(const mavlink_global_position_int_t &msg)
     vehicle.last_update_us = AP_HAL::micros();
     vehicle.last_update_ms = AP_HAL::millis();
 #if HAL_LOGGING_ENABLED
-    // log vehicle as VPOS
+    // log vehicle as GPS2
     if (should_log(MASK_LOG_GPS)) {
         Log_Write_Vehicle_Pos(vehicle.location.lat, vehicle.location.lng, vehicle.location.alt, vehicle.vel);
     }
@@ -157,7 +152,7 @@ void Tracker::tracking_update_position(const mavlink_global_position_int_t &msg)
  */
 void Tracker::tracking_update_pressure(const mavlink_scaled_pressure_t &msg)
 {
-    float local_pressure = barometer.get_pressure();
+    float local_pressure = barometer.get_sealevel_pressure(barometer.get_pressure());
     float aircraft_pressure = msg.press_abs*100.0f;
 
     // calculate altitude difference based on difference in barometric pressure
@@ -171,6 +166,10 @@ void Tracker::tracking_update_pressure(const mavlink_scaled_pressure_t &msg)
 			nav_status.altitude_offset = -alt_diff;
 			nav_status.alt_difference_baro = 0;
 			nav_status.need_altitude_calibration = false;
+            gcs().send_text(MAV_SEVERITY_INFO, "Pressure alt delta=%f", alt_diff);
+#if HAL_LOGGING_ENABLED
+            logger.Write_NamedValueFloat("NAV_ALT_OFS", nav_status.altitude_offset);
+#endif
 		}
     }
 

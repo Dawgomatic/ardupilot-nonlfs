@@ -7,7 +7,7 @@
 #include <AP_HAL/AP_HAL.h>
 
 #include <SITL/SITL_Input.h>
-#include <SITL/SIM_SoloGimbal.h>
+#include <SITL/SIM_Gimbal.h>
 #include <SITL/SIM_ADSB.h>
 #include <SITL/SIM_Vicon.h>
 #include <SITL/SIM_RF_Benewake_TF02.h>
@@ -93,6 +93,9 @@ private:
     pid_t _parent_pid;
     uint32_t _update_count;
 
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+    SocketAPM_native _sitl_rc_in{true};
+#endif
     SITL::SIM *_sitl;
     uint16_t _rcin_port;
     uint16_t _fg_view_port;
@@ -109,10 +112,10 @@ private:
     // internal SITL model
     SITL::Aircraft *sitl_model;
 
-#if AP_SIM_SOLOGIMBAL_ENABLED
+#if HAL_SIM_GIMBAL_ENABLED
     // simulated gimbal
     bool enable_gimbal;
-    SITL::SoloGimbal *gimbal;
+    SITL::Gimbal *gimbal;
 #endif
 
 #if HAL_SIM_ADSB_ENABLED

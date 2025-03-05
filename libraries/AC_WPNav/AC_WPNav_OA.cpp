@@ -1,7 +1,3 @@
-#include "AC_WPNav_config.h"
-
-#if AC_WPNAV_OA_ENABLED
-
 #include <AP_Math/control.h>
 #include <AP_InternalError/AP_InternalError.h>
 #include "AC_WPNav_OA.h"
@@ -254,5 +250,3 @@ bool AC_WPNav_OA::update_wpnav()
     // run the non-OA update
     return AC_WPNav::update_wpnav();
 }
-
-#endif  // Ac_WPNAV_OA_ENABLED

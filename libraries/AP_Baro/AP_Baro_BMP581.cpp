@@ -68,7 +68,7 @@ AP_Baro_Backend *AP_Baro_BMP581::probe(AP_Baro &baro,
         return nullptr;
     }
 
-    AP_Baro_BMP581 *sensor = NEW_NOTHROW AP_Baro_BMP581(baro, std::move(dev));
+    AP_Baro_BMP581 *sensor = new AP_Baro_BMP581(baro, std::move(dev));
     if (!sensor || !sensor->init()) {
         delete sensor;
         return nullptr;
@@ -114,7 +114,7 @@ bool AP_Baro_BMP581::init()
         return false;
     }
 
-    if ((status & 0b10) == 0 || (status & 0b100)) {
+    if ((status & 0b10) == 0  || (status & 0b100) == 1) {
         return false;
     }
 

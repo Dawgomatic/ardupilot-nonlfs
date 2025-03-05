@@ -200,7 +200,6 @@ struct page_mode_out {
     uint16_t mode;
     uint16_t bdmask;
     uint16_t esc_type;
-    uint16_t reversible_mask;
 };
 
 struct page_dshot {
@@ -224,9 +223,4 @@ struct page_dshot_telem {
     uint16_t  current_camps[4];
     uint16_t  temperature_cdeg[4];
     uint16_t  types[4];
-// if EDTv2 needs to be disabled, IOMCU firmware should be recompiled too, this is the reason
-#if AP_EXTENDED_DSHOT_TELEM_V2_ENABLED
-    uint8_t   edt2_status[4];
-    uint8_t   edt2_stress[4];
-#endif
 };

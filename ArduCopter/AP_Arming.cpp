@@ -44,7 +44,7 @@ bool AP_Arming_Copter::run_pre_arm_checks(bool display_failure)
     }
 
     // always check motors
-    char failure_msg[100] {};
+    char failure_msg[50] {};
     if (!copter.motors->arming_checks(ARRAY_SIZE(failure_msg), failure_msg)) {
         check_failed(display_failure, "Motors: %s", failure_msg);
         passed = false;
@@ -179,7 +179,7 @@ bool AP_Arming_Copter::terrain_database_required() const
     }
 
     if (copter.wp_nav->get_terrain_source() == AC_WPNav::TerrainSource::TERRAIN_FROM_TERRAINDATABASE &&
-        copter.mode_rtl.get_alt_type() == ModeRTL::RTLAltType::TERRAIN) {
+        copter.mode_rtl.get_alt_type() == ModeRTL::RTLAltType::RTL_ALTTYPE_TERRAIN) {
         return true;
     }
     return AP_Arming::terrain_database_required();
@@ -210,7 +210,7 @@ bool AP_Arming_Copter::parameter_checks(bool display_failure)
         }
 
         // acro balance parameter check
-#if MODE_ACRO_ENABLED || MODE_SPORT_ENABLED
+#if MODE_ACRO_ENABLED == ENABLED || MODE_SPORT_ENABLED == ENABLED
         if ((copter.g.acro_balance_roll > copter.attitude_control->get_angle_roll_p().kP()) || (copter.g.acro_balance_pitch > copter.attitude_control->get_angle_pitch_p().kP())) {
             check_failed(ARMING_CHECK_PARAMETERS, display_failure, "Check ACRO_BAL_ROLL/PITCH");
             return false;
@@ -224,35 +224,37 @@ bool AP_Arming_Copter::parameter_checks(bool display_failure)
         }
 
         #if FRAME_CONFIG == HELI_FRAME
-        char fail_msg[100]{};
+        char fail_msg[50];
         // check input manager parameters
         if (!copter.input_manager.parameter_check(fail_msg, ARRAY_SIZE(fail_msg))) {
             check_failed(ARMING_CHECK_PARAMETERS, display_failure, "%s", fail_msg);
             return false;
         }
 
+        // Inverted flight feature disabled for Heli Single and Dual frames
+        if (copter.g2.frame_class.get() != AP_Motors::MOTOR_FRAME_HELI_QUAD &&
+            rc().find_channel_for_option(RC_Channel::aux_func_t::INVERTED) != nullptr) {
+            check_failed(ARMING_CHECK_PARAMETERS, display_failure, "Inverted flight option not supported");
+            return false;
+        }
         // Ensure an Aux Channel is configured for motor interlock
-        if (rc().find_channel_for_option(RC_Channel::AUX_FUNC::MOTOR_INTERLOCK) == nullptr) {
+        if (rc().find_channel_for_option(RC_Channel::aux_func_t::MOTOR_INTERLOCK) == nullptr) {
             check_failed(ARMING_CHECK_PARAMETERS, display_failure, "Motor Interlock not configured");
             return false;
         }
 
         #else
-        switch (copter.g2.frame_class.get()) {
-        case AP_Motors::MOTOR_FRAME_HELI_QUAD:
-        case AP_Motors::MOTOR_FRAME_HELI_DUAL:
-        case AP_Motors::MOTOR_FRAME_HELI:
+        if (copter.g2.frame_class.get() == AP_Motors::MOTOR_FRAME_HELI_QUAD ||
+            copter.g2.frame_class.get() == AP_Motors::MOTOR_FRAME_HELI_DUAL ||
+            copter.g2.frame_class.get() == AP_Motors::MOTOR_FRAME_HELI) {
             check_failed(ARMING_CHECK_PARAMETERS, display_failure, "Invalid MultiCopter FRAME_CLASS");
             return false;
-
-        default:
-            break;
         }
         #endif // HELI_FRAME
 
         // checks when using range finder for RTL
-#if MODE_RTL_ENABLED
-        if (copter.mode_rtl.get_alt_type() == ModeRTL::RTLAltType::TERRAIN) {
+#if MODE_RTL_ENABLED == ENABLED
+        if (copter.mode_rtl.get_alt_type() == ModeRTL::RTLAltType::RTL_ALTTYPE_TERRAIN) {
             // get terrain source from wpnav
             const char *failure_template = "RTL_ALT_TYPE is above-terrain but %s";
             switch (copter.wp_nav->get_terrain_source()) {
@@ -261,7 +263,6 @@ bool AP_Arming_Copter::parameter_checks(bool display_failure)
                 return false;
                 break;
             case AC_WPNav::TerrainSource::TERRAIN_FROM_RANGEFINDER:
-#if AP_RANGEFINDER_ENABLED
                 if (!copter.rangefinder_state.enabled || !copter.rangefinder.has_orientation(ROTATION_PITCH_270)) {
                     check_failed(ARMING_CHECK_PARAMETERS, display_failure, failure_template, "no rangefinder");
                     return false;
@@ -271,9 +272,6 @@ bool AP_Arming_Copter::parameter_checks(bool display_failure)
                     check_failed(ARMING_CHECK_PARAMETERS, display_failure, failure_template, "RTL_ALT>RNGFND_MAX_CM");
                     return false;
                 }
-#else
-                check_failed(ARMING_CHECK_PARAMETERS, display_failure, failure_template, "rangefinder not in firmware");
-#endif
                 break;
             case AC_WPNav::TerrainSource::TERRAIN_FROM_TERRAINDATABASE:
                 // these checks are done in AP_Arming
@@ -291,7 +289,7 @@ bool AP_Arming_Copter::parameter_checks(bool display_failure)
 #endif
 
         // ensure controllers are OK with us arming:
-        char failure_msg[100] = {};
+        char failure_msg[50] = {};
         if (!copter.pos_control->pre_arm_checks("PSC", failure_msg, ARRAY_SIZE(failure_msg))) {
             check_failed(ARMING_CHECK_PARAMETERS, display_failure, "Bad parameter: %s", failure_msg);
             return false;
@@ -307,8 +305,8 @@ bool AP_Arming_Copter::parameter_checks(bool display_failure)
 
 bool AP_Arming_Copter::oa_checks(bool display_failure)
 {
-#if AP_OAPATHPLANNER_ENABLED
-    char failure_msg[100] = {};
+#if AC_OAPATHPLANNER_ENABLED == ENABLED
+    char failure_msg[50] = {};
     if (copter.g2.oa.pre_arm_check(failure_msg, ARRAY_SIZE(failure_msg))) {
         return true;
     }
@@ -345,10 +343,10 @@ bool AP_Arming_Copter::gps_checks(bool display_failure)
 {
     // check if fence requires GPS
     bool fence_requires_gps = false;
-#if AP_FENCE_ENABLED
+    #if AP_FENCE_ENABLED
     // if circular or polygon fence is enabled we need GPS
     fence_requires_gps = (copter.fence.get_enabled_fences() & (AC_FENCE_TYPE_CIRCLE | AC_FENCE_TYPE_POLYGON)) > 0;
-#endif
+    #endif
 
     // check if flight mode requires GPS
     bool mode_requires_gps = copter.flightmode->requires_GPS() || fence_requires_gps || (copter.simple_mode == Copter::SimpleMode::SUPERSIMPLE);
@@ -415,7 +413,7 @@ bool AP_Arming_Copter::proximity_checks(bool display_failure) const
     }
 
     // get closest object if we might use it for avoidance
-#if AP_AVOIDANCE_ENABLED
+#if AC_AVOID_ENABLED == ENABLED
     float angle_deg, distance;
     if (copter.avoid.proximity_avoidance_enabled() && copter.g2.proximity.get_closest_object(angle_deg, distance)) {
         // display error if something is within 60cm
@@ -439,7 +437,7 @@ bool AP_Arming_Copter::mandatory_gps_checks(bool display_failure)
 
     // always check if inertial nav has started and is ready
     const auto &ahrs = AP::ahrs();
-    char failure_msg[100] = {};
+    char failure_msg[50] = {};
     if (!ahrs.pre_arm_check(mode_requires_gps, failure_msg, sizeof(failure_msg))) {
         check_failed(display_failure, "AHRS: %s", failure_msg);
         return false;
@@ -447,26 +445,28 @@ bool AP_Arming_Copter::mandatory_gps_checks(bool display_failure)
 
     // check if fence requires GPS
     bool fence_requires_gps = false;
-#if AP_FENCE_ENABLED
+    #if AP_FENCE_ENABLED
     // if circular or polygon fence is enabled we need GPS
     fence_requires_gps = (copter.fence.get_enabled_fences() & (AC_FENCE_TYPE_CIRCLE | AC_FENCE_TYPE_POLYGON)) > 0;
-#endif
+    #endif
 
-    if (mode_requires_gps || require_location == RequireLocation::YES) {
+    if (mode_requires_gps) {
         if (!copter.position_ok()) {
             // vehicle level position estimate checks
             check_failed(display_failure, "Need Position Estimate");
             return false;
         }
-    } else if (fence_requires_gps) {
-        if (!copter.position_ok()) {
-            // clarify to user why they need GPS in non-GPS flight mode
-            check_failed(display_failure, "Fence enabled, need position estimate");
-            return false;
-        }
     } else {
-        // return true if GPS is not required
-        return true;
+        if (fence_requires_gps) {
+            if (!copter.position_ok()) {
+                // clarify to user why they need GPS in non-GPS flight mode
+                check_failed(display_failure, "Fence enabled, need position estimate");
+                return false;
+            }
+        } else {
+            // return true if GPS is not required
+            return true;
+        }
     }
 
     // check for GPS glitch (as reported by EKF)
@@ -501,6 +501,18 @@ bool AP_Arming_Copter::mandatory_gps_checks(bool display_failure)
         }
     }
 
+    // check if home is too far from EKF origin
+    if (copter.far_from_EKF_origin(ahrs.get_home())) {
+        check_failed(display_failure, "Home too far from EKF origin");
+        return false;
+    }
+
+    // check if vehicle is too far from EKF origin
+    if (copter.far_from_EKF_origin(copter.current_loc)) {
+        check_failed(display_failure, "Vehicle too far from EKF origin");
+        return false;
+    }
+
     // if we got here all must be ok
     return true;
 }
@@ -528,7 +540,7 @@ bool AP_Arming_Copter::winch_checks(bool display_failure) const
     if (winch == nullptr) {
         return true;
     }
-    char failure_msg[100] = {};
+    char failure_msg[50] = {};
     if (!winch->pre_arm_check(failure_msg, sizeof(failure_msg))) {
         check_failed(display_failure, "%s", failure_msg);
         return false;
@@ -605,25 +617,25 @@ bool AP_Arming_Copter::arm_checks(AP_Arming::Method method)
 
     // check throttle
     if (check_enabled(ARMING_CHECK_RC)) {
-#if FRAME_CONFIG == HELI_FRAME
+         #if FRAME_CONFIG == HELI_FRAME
         const char *rc_item = "Collective";
-#else
+        #else
         const char *rc_item = "Throttle";
-#endif
+        #endif
         // check throttle is not too high - skips checks if arming from GCS/scripting in Guided,Guided_NoGPS or Auto 
-        if (!((AP_Arming::method_is_GCS(method) || method == AP_Arming::Method::SCRIPTING) && copter.flightmode->allows_GCS_or_SCR_arming_with_throttle_high())) {
+        if (!((AP_Arming::method_is_GCS(method) || method == AP_Arming::Method::SCRIPTING) && (copter.flightmode->mode_number() == Mode::Number::GUIDED || copter.flightmode->mode_number() == Mode::Number::GUIDED_NOGPS || copter.flightmode->mode_number() == Mode::Number::AUTO))) {
             // above top of deadband is too always high
             if (copter.get_pilot_desired_climb_rate(copter.channel_throttle->get_control_in()) > 0.0f) {
                 check_failed(ARMING_CHECK_RC, true, "%s too high", rc_item);
                 return false;
             }
             // in manual modes throttle must be at zero
-#if FRAME_CONFIG != HELI_FRAME
+            #if FRAME_CONFIG != HELI_FRAME
             if ((copter.flightmode->has_manual_throttle() || copter.flightmode->mode_number() == Mode::Number::DRIFT) && copter.channel_throttle->get_control_in() > 0) {
                 check_failed(ARMING_CHECK_RC, true, "%s too high", rc_item);
                 return false;
             }
-#endif
+            #endif
         }
     }
 
@@ -728,7 +740,7 @@ bool AP_Arming_Copter::arm(const AP_Arming::Method method, const bool do_arming_
     copter.update_super_simple_bearing(false);
 
     // Reset SmartRTL return location. If activated, SmartRTL will ultimately try to land at this point
-#if MODE_SMARTRTL_ENABLED
+#if MODE_SMARTRTL_ENABLED == ENABLED
     copter.g2.smart_rtl.set_home(copter.position_ok());
 #endif
 
@@ -808,6 +820,15 @@ bool AP_Arming_Copter::disarm(const AP_Arming::Method method, bool do_disarm_che
         }
     }
 
+#if AUTOTUNE_ENABLED == ENABLED
+    // save auto tuned parameters
+    if (copter.flightmode == &copter.mode_autotune) {
+        copter.mode_autotune.save_tuning_gains();
+    } else {
+        copter.mode_autotune.reset();
+    }
+#endif
+
     // we are not in the air
     copter.set_land_complete(true);
     copter.set_land_complete_maybe(true);
@@ -815,7 +836,7 @@ bool AP_Arming_Copter::disarm(const AP_Arming::Method method, bool do_disarm_che
     // send disarm command to motors
     copter.motors->armed(false);
 
-#if MODE_AUTO_ENABLED
+#if MODE_AUTO_ENABLED == ENABLED
     // reset the mission
     copter.mode_auto.mission.reset();
 #endif
@@ -827,11 +848,6 @@ bool AP_Arming_Copter::disarm(const AP_Arming::Method method, bool do_disarm_che
     hal.util->set_soft_armed(false);
 
     copter.ap.in_arming_delay = false;
-
-#if AUTOTUNE_ENABLED
-    // Possibly save auto tuned parameters
-    copter.mode_autotune.autotune.disarmed(copter.flightmode == &copter.mode_autotune);
-#endif
 
     return true;
 }

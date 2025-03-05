@@ -30,6 +30,7 @@ on:
       - 'Tools/Hello/**'
       - 'Tools/IO_Firmware/**'
       - 'Tools/Linux_HAL_Essentials/**'
+      - 'Tools/LogAnalyzer/**'
       - 'Tools/Pozyx/**'
       - 'Tools/PrintVersion.py'
       - 'Tools/Replay/**'
@@ -198,7 +199,7 @@ jobs:
             export CXX=clang++
           fi
           PATH="/github/home/.local/bin:$PATH"
-          ./waf configure --board sitl --debug
+          ./waf configure --board sitl
           ./waf build --target bin/arduplane
           ccache -s
           ccache -z
@@ -213,8 +214,7 @@ jobs:
       fail-fast: false  # don't cancel if a job from the matrix fails
       matrix:
         config: [
-            sitltest-plane-tests1a,
-            sitltest-plane-tests1b,
+            sitltest-plane,
             sitltest-quadplane,
         ]
 
@@ -230,7 +230,7 @@ jobs:
           NOW=$(date -u +"%F-%T")
           echo "timestamp=${NOW}" >> $GITHUB_OUTPUT
       - name: ccache cache files
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v3
         with:
           path: ~/.ccache
           key: ${{github.workflow}}-ccache-base-${{steps.ccache_cache_timestamp.outputs.timestamp}}
@@ -248,7 +248,7 @@ jobs:
           Tools/scripts/build_ci.sh
 
       - name: Archive buildlog artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         if: failure()
         with:
            name: fail-${{matrix.config}}
@@ -262,7 +262,7 @@ jobs:
            retention-days: 14
 
       - name: Archive .bin artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
            name: BIN-${{matrix.config}}
            path: /__w/ardupilot/ardupilot/logs

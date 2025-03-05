@@ -24,6 +24,7 @@ on:
       - 'Tools/gittools/**'
       - 'Tools/Hello/**'
       - 'Tools/IO_Firmware/**'
+      - 'Tools/LogAnalyzer/**'
       - 'Tools/mavproxy_modules/**'
       - 'Tools/Pozyx/**'
       - 'Tools/PrintVersion.py'
@@ -157,10 +158,6 @@ jobs:
         include:
           - config: navigator
             toolchain: armhf-musl
-          - config: linux
-            toolchain: base # GCC
-          - config: navigator64
-            toolchain: aarch64
           - config: linux
             toolchain: base # GCC
         exclude:

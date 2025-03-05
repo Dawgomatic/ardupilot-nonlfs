@@ -9,7 +9,6 @@ from waflib.TaskGen import feature, before_method, extension
 import os
 import os.path
 from xml.etree import ElementTree as et
-import subprocess
 
 class dronecangen(Task.Task):
     """generate uavcan header files"""
@@ -20,12 +19,11 @@ class dronecangen(Task.Task):
         python = self.env.get_flat('PYTHON')
         out = self.env.get_flat('OUTPUT_DIR')
         src = self.env.get_flat('SRC')
-        dsdlc = self.env.get_flat("DC_DSDL_COMPILER_DIR")
+        dsdlc = self.env.get_flat("DC_DSDL_COMPILER")
 
-        cmd = ['{}'.format(python),
-               '{}/dronecan_dsdlc.py'.format(dsdlc),
-               '-O{}'.format(out)] + [x.abspath() for x in self.inputs]
-        ret = self.exec_command(cmd)
+        ret = self.exec_command(['{}'.format(python),
+                                 '{}'.format(dsdlc),
+                                 '-O{}'.format(out)] + [x.abspath() for x in self.inputs])
         if ret != 0:
             # ignore if there was a signal to the interpreter rather
             # than a real error in the script. Some environments use a
@@ -34,9 +32,6 @@ class dronecangen(Task.Task):
                 Logs.warn('dronecangen crashed with code: {}'.format(ret))
                 ret = 0
             else:
-                Logs.warn('dronecangen: cmd=%s ' % str(cmd))
-                # re-run command with stdout visible to see errors
-                subprocess.call(cmd)
                 Logs.error('dronecangen returned {} error code'.format(ret))
         return ret
 
@@ -55,16 +50,6 @@ def process_dronecangen(self):
         self.bld.fatal('dronecangen: missing option output_dir')
 
     inputs = self.to_nodes(self.source)
-    # depend on each message file in the source so rebuilds will occur properly
-    deps = []
-    for inp in inputs:
-        deps.extend(inp.ant_glob("**/*.uavcan"))
-    # also depend on the generator source itself
-    dsdlc_dir = self.env.get_flat("DC_DSDL_COMPILER_DIR")
-    dsdlc = self.bld.root.find_node(dsdlc_dir) # expected to be absolute
-    if dsdlc is None:
-        self.bld.fatal("dronecangen: waf couldn't find dsdlc at abspath {}".format(dsdlc_dir))
-    deps.extend(dsdlc.ant_glob("**/*.py **/*.em"))
     outputs = []
 
     self.source = []
@@ -73,7 +58,6 @@ def process_dronecangen(self):
         self.output_dir = self.bld.bldnode.find_or_declare(self.output_dir)
 
     task = self.create_task('dronecangen', inputs, outputs)
-    task.dep_nodes = deps
     task.env['OUTPUT_DIR'] = self.output_dir.abspath()
 
     task.env.env = dict(os.environ)
@@ -84,4 +68,5 @@ def configure(cfg):
     """
     env = cfg.env
     env.DC_DSDL_COMPILER_DIR = cfg.srcnode.make_node('modules/DroneCAN/dronecan_dsdlc/').abspath()
-    cfg.msg('DC_DSDL compiler in', env.DC_DSDL_COMPILER_DIR)
+    env.DC_DSDL_COMPILER = env.DC_DSDL_COMPILER_DIR + '/dronecan_dsdlc.py'
+    cfg.msg('DC_DSDL compiler', env.DC_DSDL_COMPILER)

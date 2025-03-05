@@ -30,11 +30,9 @@ from rclpy.qos import QoSHistoryPolicy
 
 from sensor_msgs.msg import NavSatFix
 
-TOPIC = "ap/navsat"
-
 
 class NavSatFixListener(rclpy.node.Node):
-    """Subscribe to NavSatFix messages."""
+    """Subscribe to NavSatFix messages on /ap/navsat/navsat0."""
 
     def __init__(self):
         """Initialise the node."""
@@ -42,7 +40,7 @@ class NavSatFixListener(rclpy.node.Node):
         self.msg_event_object = threading.Event()
 
         # Declare and acquire `topic` parameter
-        self.declare_parameter("topic", TOPIC)
+        self.declare_parameter("topic", "ap/navsat/navsat0")
         self.topic = self.get_parameter("topic").get_parameter_value().string_value
 
     def start_subscriber(self):
@@ -119,7 +117,7 @@ def test_dds_serial_navsat_msg_recv(launch_context, launch_sitl_copter_dds_seria
         node = NavSatFixListener()
         node.start_subscriber()
         msgs_received_flag = node.msg_event_object.wait(timeout=10.0)
-        assert msgs_received_flag, f"Did not receive '{TOPIC}' msgs."
+        assert msgs_received_flag, "Did not receive 'ap/navsat/navsat0' msgs."
     finally:
         rclpy.shutdown()
     yield
@@ -143,7 +141,7 @@ def test_dds_udp_navsat_msg_recv(launch_context, launch_sitl_copter_dds_udp):
         node = NavSatFixListener()
         node.start_subscriber()
         msgs_received_flag = node.msg_event_object.wait(timeout=10.0)
-        assert msgs_received_flag, f"Did not receive '{TOPIC}' msgs."
+        assert msgs_received_flag, "Did not receive 'ap/navsat/navsat0' msgs."
     finally:
         rclpy.shutdown()
     yield

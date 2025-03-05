@@ -42,8 +42,8 @@ ExpectDelay::~ExpectDelay()
  */
 TimeCheck::TimeCheck(uint32_t _limit_ms, const char *_file, uint32_t _line) :
     limit_ms(_limit_ms),
-    line(_line),
-    file(_file)
+    file(_file),
+    line(_line)
 {
     start_ms = AP_HAL::millis();
 }

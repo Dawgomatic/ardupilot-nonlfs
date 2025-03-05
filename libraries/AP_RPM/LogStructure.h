@@ -8,19 +8,15 @@
 // @LoggerMessage: RPM
 // @Description: Data from RPM sensors
 // @Field: TimeUS: Time since system startup
-// @Field: I: Instance
-// @Field: RPM: Sensor's rpm measurement
-// @Field: Qual: Signal quality
-// @Field: H: Sensor Health (Bool)
+// @Field: rpm1: First sensor's data
+// @Field: rpm2: Second sensor's data
 struct PACKED log_RPM {
     LOG_PACKET_HEADER;
     uint64_t time_us;
-    uint8_t inst;
-    float rpm;
-    float quality;
-    uint8_t health;
+    float rpm1;
+    float rpm2;
 };
 
 #define LOG_STRUCTURE_FROM_RPM        \
     { LOG_RPM_MSG, sizeof(log_RPM), \
-      "RPM",  "QBffB", "TimeUS,I,RPM,Qual,H", "s#q--", "F-000" , true },
+      "RPM",  "Qff", "TimeUS,rpm1,rpm2", "sqq", "F00" , true },

@@ -4,10 +4,8 @@
 
   // set 0 in 4.6, remove feature in 4.7:
 #ifndef AP_MAVLINK_MAV_CMD_NAV_SET_YAW_SPEED_ENABLED
-#define AP_MAVLINK_MAV_CMD_NAV_SET_YAW_SPEED_ENABLED 0
+#define AP_MAVLINK_MAV_CMD_NAV_SET_YAW_SPEED_ENABLED 1
 #endif
-
-#include "defines.h"
 
 class GCS_MAVLINK_Rover : public GCS_MAVLINK
 {
@@ -31,14 +29,12 @@ protected:
 
     bool persist_streamrates() const override { return true; }
 
+    bool set_home_to_current_location(bool lock) override;
+    bool set_home(const Location& loc, bool lock) override;
     uint64_t capabilities() const override;
 
     void send_nav_controller_output() const override;
     void send_pid_tuning() override;
-
-#if HAL_LOGGING_ENABLED
-    uint32_t log_radio_bit() const override { return MASK_LOG_PM; }
-#endif
 
 private:
 

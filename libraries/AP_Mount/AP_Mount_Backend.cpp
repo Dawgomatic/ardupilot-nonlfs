@@ -67,7 +67,6 @@ bool AP_Mount_Backend::set_mode(MAV_MOUNT_MODE mode)
 }
 
 // set angle target in degrees
-// roll and pitch are in earth-frame
 // yaw_is_earth_frame (aka yaw_lock) should be true if yaw angle is earth-frame, false if body-frame
 void AP_Mount_Backend::set_angle_target(float roll_deg, float pitch_deg, float yaw_deg, bool yaw_is_earth_frame)
 {
@@ -278,8 +277,8 @@ void AP_Mount_Backend::handle_mount_control(const mavlink_mount_control_t &packe
 {
     switch (get_mode()) {
     case MAV_MOUNT_MODE_MAVLINK_TARGETING:
-        // input_a : Pitch in centi-degrees (earth-frame)
-        // input_b : Roll in centi-degrees (earth-frame)
+        // input_a : Pitch in centi-degrees
+        // input_b : Roll in centi-degrees
         // input_c : Yaw in centi-degrees (interpreted as body-frame)
         set_angle_target(packet.input_b * 0.01, packet.input_a * 0.01, packet.input_c * 0.01, false);
         break;
@@ -326,10 +325,10 @@ MAV_RESULT AP_Mount_Backend::handle_command_do_mount_control(const mavlink_comma
         return MAV_RESULT_ACCEPTED;
 
     case MAV_MOUNT_MODE_MAVLINK_TARGETING: {
-        // set target angles (in degrees) from mavlink message
-        const float pitch_deg = packet.param1;  // param1: pitch (earth-frame, degrees)
-        const float roll_deg = packet.param2;   // param2: roll (earth-frame, degrees)
-        const float yaw_deg = packet.param3;    // param3: yaw (body-frame, degrees)
+        // set body-frame target angles (in degrees) from mavlink message
+        const float pitch_deg = packet.param1;  // param1: pitch (in degrees)
+        const float roll_deg = packet.param2;   // param2: roll in degrees
+        const float yaw_deg = packet.param3;    // param3: yaw in degrees
 
         // warn if angles are invalid to catch angles sent in centi-degrees
         if ((fabsf(pitch_deg) > 90) || (fabsf(roll_deg) > 180) || (fabsf(yaw_deg) > 360)) {
@@ -408,7 +407,7 @@ MAV_RESULT AP_Mount_Backend::handle_command_do_gimbal_manager_configure(const ma
 
     // send gimbal_manager_status if control has changed
     if (prev_control_id != mavlink_control_id) {
-        GCS_SEND_MESSAGE(MSG_GIMBAL_MANAGER_STATUS);
+        gcs().send_message(MSG_GIMBAL_MANAGER_STATUS);
     }
 
     return MAV_RESULT_ACCEPTED;

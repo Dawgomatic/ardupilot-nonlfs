@@ -43,10 +43,7 @@ void AP_Frsky_SPort::send(void)
     }
 
     for (int16_t i = 0; i < numc; i++) {
-        uint8_t readbyte;
-        if (!_port->read(readbyte)) {
-            break;
-        }
+        int16_t readbyte = _port->read();
         if (_SPort.sport_status == false) {
             if  (readbyte == FRAME_HEAD) {
                 _SPort.sport_status = true;

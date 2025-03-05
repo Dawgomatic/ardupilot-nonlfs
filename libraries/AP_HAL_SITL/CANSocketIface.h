@@ -20,8 +20,9 @@
 #if HAL_NUM_CAN_IFACES
 
 #include <AP_HAL/CANIface.h>
-#include <AP_HAL/utility/RingBuffer.h>
+
 #include <string>
+#include <queue>
 #include <memory>
 #include <map>
 #include <unordered_set>
@@ -126,8 +127,8 @@ private:
     AP_HAL::BinarySemaphore *sem_handle;
 
     pollfd _pollfd;
-    ObjectArray<CanTxItem> _tx_queue{100};
-    ObjectArray<CanRxItem> _rx_queue{100};
+    std::priority_queue<CanTxItem> _tx_queue;
+    std::queue<CanRxItem> _rx_queue;
 
     /*
       bus statistics

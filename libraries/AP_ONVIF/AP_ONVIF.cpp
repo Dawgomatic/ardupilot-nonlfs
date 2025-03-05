@@ -63,13 +63,13 @@ bool AP_ONVIF::start(const char *user, const char *pass, const char *hostname)
         soap->connect_timeout = soap->recv_timeout = soap->send_timeout = 30; // 30 sec
 
         if (proxy_device == nullptr) {
-            proxy_device = NEW_NOTHROW DeviceBindingProxy(soap);
+            proxy_device = new DeviceBindingProxy(soap);
         }
         if (proxy_media == nullptr) {
-            proxy_media = NEW_NOTHROW MediaBindingProxy(soap);
+            proxy_media = new MediaBindingProxy(soap);
         }
         if (proxy_ptz == nullptr) {
-            proxy_ptz = NEW_NOTHROW PTZBindingProxy(soap);
+            proxy_ptz = new PTZBindingProxy(soap);
         }
 
         if (proxy_device == nullptr ||

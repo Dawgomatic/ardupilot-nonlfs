@@ -15,7 +15,6 @@
 #pragma once
 
 #include "AP_HAL_Linux.h"
-#include <sys/time.h>
 #include <linux/videodev2.h>
 #include <vector>
 

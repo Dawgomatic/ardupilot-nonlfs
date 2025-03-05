@@ -3,13 +3,12 @@
 
   Many thanks to the cleanflight and betaflight projects
  */
-#include "AP_Radio_config.h"
-
-#if AP_RADIO_CC2500_ENABLED
-
 #include <AP_HAL/AP_HAL.h>
 
 // #pragma GCC optimize("O0")
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
+#if HAL_RCINPUT_WITH_AP_RADIO
 
 #include <AP_Math/AP_Math.h>
 #include "AP_Radio_cc2500.h"
@@ -30,7 +29,7 @@
 
 extern const AP_HAL::HAL& hal;
 
-#define Debug(level, fmt, args...)   do { if ((level) <= get_debug_level()) { GCS_SEND_TEXT(MAV_SEVERITY_INFO, fmt, ##args); }} while (0)
+#define Debug(level, fmt, args...)   do { if ((level) <= get_debug_level()) { gcs().send_text(MAV_SEVERITY_INFO, fmt, ##args); }} while (0)
 
 // object instance for trampoline
 AP_Radio_cc2500 *AP_Radio_cc2500::radio_singleton;
@@ -1564,4 +1563,5 @@ void AP_Radio_cc2500::check_double_bind(void)
     radio_singleton->nextChannel(1);
 }
 
-#endif  // AP_RADIO_CC2500_ENABLED
+#endif // HAL_RCINPUT_WITH_AP_RADIO
+#endif // CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS

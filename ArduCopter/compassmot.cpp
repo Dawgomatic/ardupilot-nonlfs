@@ -146,10 +146,9 @@ MAV_RESULT Copter::mavlink_compassmot(const GCS_MAVLINK &gcs_chan)
         read_radio();
 
         // pass through throttle to motors
-        auto &srv = AP::srv();
-        srv.cork();
+        SRV_Channels::cork();
         motors->set_throttle_passthrough_for_esc_calibration(channel_throttle->get_control_in() * 0.001f);
-        srv.push();
+        SRV_Channels::push();
 
         // read some compass values
         compass.read();
@@ -229,12 +228,6 @@ MAV_RESULT Copter::mavlink_compassmot(const GCS_MAVLINK &gcs_chan)
 #if HAL_WITH_ESC_TELEM
             // send ESC telemetry to monitor ESC and motor temperatures
             AP::esc_telem().send_esc_telemetry_mavlink(gcs_chan.get_chan());
-#endif
-#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
-            // a lot of autotest timeouts are based on receiving system time
-            gcs_chan.send_system_time();
-            // autotesting of compassmot wants to see RC channels message
-            gcs_chan.send_rc_channels();
 #endif
         }
     }

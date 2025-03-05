@@ -13,7 +13,6 @@
 #include <AP_Scripting/AP_Scripting.h>
 #include <RC_Channel/RC_Channel.h>
 #include <AP_Mount/AP_Mount.h>
-#include <AC_Fence/AC_Fence.h>
 
 #if AP_RC_CHANNEL_ENABLED
 bool AP_Mission::start_command_do_aux_function(const AP_Mission::Mission_Command& cmd)
@@ -39,18 +38,21 @@ bool AP_Mission::start_command_do_aux_function(const AP_Mission::Mission_Command
 #if AP_GRIPPER_ENABLED
 bool AP_Mission::start_command_do_gripper(const AP_Mission::Mission_Command& cmd)
 {
-    AP_Gripper &gripper = AP::gripper();
+    AP_Gripper *gripper = AP::gripper();
+    if (gripper == nullptr) {
+        return false;
+    }
 
     // Note: we ignore the gripper num parameter because we only
     // support one gripper
     switch (cmd.content.gripper.action) {
     case GRIPPER_ACTION_RELEASE:
-        gripper.release();
+        gripper->release();
         // Log_Write_Event(DATA_GRIPPER_RELEASE);
         GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Gripper Released");
         return true;
     case GRIPPER_ACTION_GRAB:
-        gripper.grab();
+        gripper->grab();
         // Log_Write_Event(DATA_GRIPPER_GRAB);
         GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Gripper Grabbed");
         return true;
@@ -345,32 +347,6 @@ bool AP_Mission::start_command_do_gimbal_manager_pitchyaw(const AP_Mission::Miss
 
 #endif // HAL_MOUNT_ENABLED
     // if we got this far then message is not handled
-    return false;
-}
-
-bool AP_Mission::start_command_fence(const AP_Mission::Mission_Command& cmd)
-{
-#if AP_FENCE_ENABLED
-    AC_Fence* fence = AP::fence();
-
-    if (fence == nullptr) {
-        return false;
-    }
-
-    if (cmd.p1 == uint8_t(AC_Fence::MavlinkFenceActions::DISABLE_FENCE)) {          // disable fence
-        uint8_t fences = fence->enable_configured(false);
-        fence->print_fence_message("disabled", fences);
-        return true;
-    } else if (cmd.p1 == uint8_t(AC_Fence::MavlinkFenceActions::ENABLE_FENCE)) {   // enable fence
-        uint8_t fences = fence->enable_configured(true);
-        fence->print_fence_message("enabled", fences);
-        return true;
-    } else if (cmd.p1 == uint8_t(AC_Fence::MavlinkFenceActions::DISABLE_ALT_MIN_FENCE)) {   // disable fence floor only
-        fence->disable_floor();
-        fence->print_fence_message("disabled", AC_FENCE_TYPE_ALT_MIN);
-        return true;
-    }
-#endif // AP_FENCE_ENABLED
     return false;
 }
 

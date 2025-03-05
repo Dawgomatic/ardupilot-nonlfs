@@ -1,6 +1,6 @@
 #include "Copter.h"
 
-#if MODE_FLIP_ENABLED
+#if MODE_FLIP_ENABLED == ENABLED
 
 /*
  * Init and run calls for flip flight mode

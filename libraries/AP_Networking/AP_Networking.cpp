@@ -9,7 +9,6 @@
 #include <AP_Math/crc.h>
 #include <AP_InternalError/AP_InternalError.h>
 #include <AP_Filesystem/AP_Filesystem.h>
-#include <AP_HAL/CANIface.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -77,7 +76,7 @@ const AP_Param::GroupInfo AP_Networking::var_info[] = {
     // @Param: TESTS
     // @DisplayName: Test enable flags
     // @Description: Enable/Disable networking tests
-    // @Bitmask: 0:UDP echo test,1:TCP echo test, 2:TCP discard test, 3:TCP reflect test
+    // @Bitmask: 0:UDP echo test,1:TCP echo test, 2:TCP discard test
     // @RebootRequired: True
     // @User: Advanced
     AP_GROUPINFO("TESTS", 7,  AP_Networking,    param.tests,   0),
@@ -90,7 +89,7 @@ const AP_Param::GroupInfo AP_Networking::var_info[] = {
     // @Param: OPTIONS
     // @DisplayName: Networking options
     // @Description: Networking options
-    // @Bitmask: 0:EnablePPP Ethernet gateway, 1:Enable CAN1 multicast endpoint, 2:Enable CAN2 multicast endpoint, 3:Enable CAN1 multicast bridged, 4:Enable CAN2 multicast bridged
+    // @Bitmask: 0:EnablePPP Ethernet gateway
     // @RebootRequired: True
     // @User: Advanced
     AP_GROUPINFO("OPTIONS", 9,  AP_Networking,    param.options, 0),
@@ -149,26 +148,26 @@ void AP_Networking::init()
         /*
           when we are a PPP/Ethernet gateway we bring up the ethernet first
          */
-        backend = NEW_NOTHROW AP_Networking_ChibiOS(*this);
-        backend_PPP = NEW_NOTHROW AP_Networking_PPP(*this);
+        backend = new AP_Networking_ChibiOS(*this);
+        backend_PPP = new AP_Networking_PPP(*this);
     }
 #endif
 
 
 #if AP_NETWORKING_BACKEND_PPP
     if (backend == nullptr && AP::serialmanager().have_serial(AP_SerialManager::SerialProtocol_PPP, 0)) {
-        backend = NEW_NOTHROW AP_Networking_PPP(*this);
+        backend = new AP_Networking_PPP(*this);
     }
 #endif
 
 #if AP_NETWORKING_BACKEND_CHIBIOS
     if (backend == nullptr) {
-        backend = NEW_NOTHROW AP_Networking_ChibiOS(*this);
+        backend = new AP_Networking_ChibiOS(*this);
     }
 #endif
 #if AP_NETWORKING_BACKEND_SITL
     if (backend == nullptr) {
-        backend = NEW_NOTHROW AP_Networking_SITL(*this);
+        backend = new AP_Networking_SITL(*this);
     }
 #endif
 
@@ -199,24 +198,8 @@ void AP_Networking::init()
     start_tests();
 #endif
 
-#if AP_NETWORKING_CAN_MCAST_BRIDGING_ENABLED
-    if (option_is_set(OPTION::CAN1_MCAST_ENDPOINT) || option_is_set(OPTION::CAN1_MCAST_ENDPOINT)) {
-        // get mask of enabled buses
-        uint8_t bus_mask = 0;
-        if (option_is_set(OPTION::CAN1_MCAST_ENDPOINT)) {
-            bus_mask |= (1U<<0);
-        }
-        if (option_is_set(OPTION::CAN1_MCAST_ENDPOINT)) {
-            bus_mask |= (1U<<1);
-        }
-        mcast_server.start(bus_mask);
-    }
-#endif
-    
-#if AP_NETWORKING_REGISTER_PORT_ENABLED
     // init network mapped serialmanager ports
     ports_init();
-#endif
 }
 
 /*

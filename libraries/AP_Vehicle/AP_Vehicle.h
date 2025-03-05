@@ -37,8 +37,6 @@
 #include <AP_ExternalControl/AP_ExternalControl_config.h>
 #include <AP_GPS/AP_GPS.h>
 #include <AP_Generator/AP_Generator.h>
-#include <AP_Logger/AP_Logger.h>
-#include <AP_InertialSensor/AP_InertialSensor.h>
 #include <AP_Notify/AP_Notify.h>                    // Notify library
 #include <AP_Param/AP_Param.h>
 #include <AP_RangeFinder/AP_RangeFinder.h>
@@ -70,17 +68,6 @@
 #include <Filter/LowPassFilter.h>
 #include <AP_KDECAN/AP_KDECAN.h>
 #include <Filter/AP_Filter.h>
-#include <AP_Stats/AP_Stats.h>              // statistics library
-#if AP_SCRIPTING_ENABLED
-#include <AP_Scripting/AP_Scripting.h>
-#endif
-
-#include <AP_Gripper/AP_Gripper_config.h>
-#if AP_GRIPPER_ENABLED
-#include <AP_Gripper/AP_Gripper.h>
-#endif
-
-#include <AP_IBus_Telem/AP_IBus_Telem.h>
 
 class AP_DDS_Client;
 
@@ -129,12 +116,10 @@ public:
     // parameters for example.
     void notify_no_such_mode(uint8_t mode_number);
 
-#if AP_SCHEDULER_ENABLED
     void get_common_scheduler_tasks(const AP_Scheduler::Task*& tasks, uint8_t& num_tasks);
     // implementations *MUST* fill in all passed-in fields or we get
     // Valgrind errors
     virtual void get_scheduler_tasks(const AP_Scheduler::Task *&tasks, uint8_t &task_count, uint32_t &log_bit) = 0;
-#endif
 
     /*
       set the "likely flying" flag. This is not guaranteed to be
@@ -171,23 +156,21 @@ public:
     // returns true if the vehicle has crashed
     virtual bool is_crashed() const;
 
-#if AP_SCRIPTING_ENABLED || AP_EXTERNAL_CONTROL_ENABLED
-    // Method to takeoff for use by external control
-    virtual bool start_takeoff(const float alt) { return false; }
+#if AP_EXTERNAL_CONTROL_ENABLED
     // Method to control vehicle position for use by external control
     virtual bool set_target_location(const Location& target_loc) { return false; }
-#endif // AP_SCRIPTING_ENABLED || AP_EXTERNAL_CONTROL_ENABLED
+#endif // AP_EXTERNAL_CONTROL_ENABLED
 #if AP_SCRIPTING_ENABLED
     /*
       methods to control vehicle for use by scripting
     */
+    virtual bool start_takeoff(float alt) { return false; }
     virtual bool set_target_pos_NED(const Vector3f& target_pos, bool use_yaw, float yaw_deg, bool use_yaw_rate, float yaw_rate_degs, bool yaw_relative, bool terrain_alt) { return false; }
     virtual bool set_target_posvel_NED(const Vector3f& target_pos, const Vector3f& target_vel) { return false; }
     virtual bool set_target_posvelaccel_NED(const Vector3f& target_pos, const Vector3f& target_vel, const Vector3f& target_accel, bool use_yaw, float yaw_deg, bool use_yaw_rate, float yaw_rate_degs, bool yaw_relative) { return false; }
     virtual bool set_target_velocity_NED(const Vector3f& vel_ned) { return false; }
     virtual bool set_target_velaccel_NED(const Vector3f& target_vel, const Vector3f& target_accel, bool use_yaw, float yaw_deg, bool use_yaw_rate, float yaw_rate_degs, bool yaw_relative) { return false; }
     virtual bool set_target_angle_and_climbrate(float roll_deg, float pitch_deg, float yaw_deg, float climb_rate_ms, bool use_yaw_rate, float yaw_rate_degs) { return false; }
-    virtual bool set_target_rate_and_throttle(float roll_rate_dps, float pitch_rate_dps, float yaw_rate_dps, float throttle) { return false; }
 
     // command throttle percentage and roll, pitch, yaw target
     // rates. For use with scripting controllers
@@ -225,11 +208,7 @@ public:
 
     // allow for landing descent rate to be overridden by a script, may be -ve to climb
     virtual bool set_land_descent_rate(float descent_rate) { return false; }
-
-    // Allow for scripting to have control over the crosstracking when exiting and resuming missions or guided flight
-    // It's up to the Lua script to ensure the provided location makes sense
-    virtual bool set_crosstrack_start(const Location &new_start_location) { return false; }
-
+    
     // control outputs enumeration
     enum class ControlOutput {
         Roll = 1,
@@ -297,17 +276,10 @@ public:
      */
     virtual bool get_rate_ef_targets(Vector3f& rate_ef_targets) const { return false; }
 
-#if AP_AHRS_ENABLED
-    virtual bool set_home_to_current_location(bool lock) WARN_IF_UNUSED { return false; }
-    virtual bool set_home(const Location& loc, bool lock) WARN_IF_UNUSED { return false; }
-#endif
-
 protected:
 
     virtual void init_ardupilot() = 0;
     virtual void load_parameters() = 0;
-    void load_parameters(AP_Int16 &format_version, const uint16_t expected_format_version);
-
     virtual void set_control_channels() {}
 
     // board specific config
@@ -318,10 +290,8 @@ protected:
     AP_CANManager can_mgr;
 #endif
 
-#if AP_SCHEDULER_ENABLED
     // main loop scheduler
     AP_Scheduler scheduler;
-#endif
 
     // IMU variables
     // Integration time; time last loop took to run
@@ -332,35 +302,12 @@ protected:
     AP_GPS gps;
 #endif
     AP_Baro barometer;
-#if AP_COMPASS_ENABLED
     Compass compass;
-#endif
-#if AP_INERTIALSENSOR_ENABLED
     AP_InertialSensor ins;
-#endif
 #if HAL_BUTTON_ENABLED
     AP_Button button;
 #endif
-#if AP_RANGEFINDER_ENABLED
     RangeFinder rangefinder;
-#endif
-
-#if HAL_LOGGING_ENABLED
-    AP_Logger logger;
-    AP_Int32 bitmask_unused;
-    // method supplied by vehicle to provide log bitmask:
-    virtual const AP_Int32 &get_log_bitmask() { return bitmask_unused; }
-    virtual const struct LogStructure *get_log_structures() const { return nullptr; }
-    virtual uint8_t get_num_log_structures() const { return 0; }
-#endif
-
-#if AP_GRIPPER_ENABLED
-    AP_Gripper gripper;
-#endif
-
-#if AP_IBUS_TELEM_ENABLED
-    AP_IBus_Telem ibus_telem;
-#endif
 
 #if AP_RSSI_ENABLED
     AP_RSSI rssi;
@@ -375,10 +322,7 @@ protected:
 #if AP_VIDEOTX_ENABLED
     AP_VideoTX vtx;
 #endif
-
-#if AP_SERIALMANAGER_ENABLED
     AP_SerialManager serial_manager;
-#endif
 
 #if AP_RELAY_ENABLED
     AP_Relay relay;
@@ -392,10 +336,8 @@ protected:
     // false disables external leds)
     AP_Notify notify;
 
-#if AP_AHRS_ENABLED
     // Inertial Navigation EKF
     AP_AHRS ahrs;
-#endif
 
 #if HAL_HOTT_TELEM_ENABLED
     AP_Hott_Telem hott_telem;
@@ -446,11 +388,6 @@ protected:
     AP_Airspeed airspeed;
 #endif
 
-#if AP_STATS_ENABLED
-    // vehicle statistics
-    AP_Stats stats;
-#endif
-
 #if AP_AIS_ENABLED
     // Automatic Identification System - for tracking sea-going vehicles
     AP_AIS ais;
@@ -472,14 +409,8 @@ protected:
     AP_TemperatureSensor temperature_sensor;
 #endif
 
-#if AP_SCRIPTING_ENABLED
-    AP_Scripting scripting;
-#endif
-
     static const struct AP_Param::GroupInfo var_info[];
-#if AP_SCHEDULER_ENABLED
     static const struct AP_Scheduler::Task scheduler_tasks[];
-#endif
 
 #if OSD_ENABLED
     void publish_osd_info();
@@ -513,16 +444,13 @@ protected:
 
 private:
 
-#if AP_SCHEDULER_ENABLED
     // delay() callback that processing MAVLink packets
     static void scheduler_delay_callback();
-#endif
 
     // if there's been a watchdog reset, notify the world via a
     // statustext:
     void send_watchdog_reset_statustext();
 
-#if AP_INERTIALSENSOR_HARMONICNOTCH_ENABLED
     // update the harmonic notch for throttle based notch
     void update_throttle_notch(AP_InertialSensor::HarmonicNotch &notch);
 
@@ -531,7 +459,6 @@ private:
 
     // run notch update at either loop rate or 200Hz
     void update_dynamic_notch_at_specified_rate();
-#endif  // AP_INERTIALSENSOR_HARMONICNOTCH_ENABLED
 
     // decimation for 1Hz update
     uint8_t one_Hz_counter;
@@ -539,9 +466,7 @@ private:
 
     bool likely_flying;         // true if vehicle is probably flying
     uint32_t _last_flying_ms;   // time when likely_flying last went true
-#if AP_INERTIALSENSOR_HARMONICNOTCH_ENABLED
     uint32_t _last_notch_update_ms[HAL_INS_NUM_HARMONIC_NOTCH_FILTERS]; // last time update_dynamic_notch() was run
-#endif
 
     static AP_Vehicle *_singleton;
 
@@ -555,10 +480,7 @@ private:
 
     uint32_t _last_internal_errors;  // backup of AP_InternalError::internal_errors bitmask
 
-#if AP_CUSTOMROTATIONS_ENABLED
     AP_CustomRotations custom_rotations;
-#endif
-
 #if AP_FILTER_ENABLED
     AP_Filters filters;
 #endif

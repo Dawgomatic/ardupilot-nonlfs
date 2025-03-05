@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include "AP_DDS_config.h"
-
 #if AP_DDS_ENABLED
 
 #include "builtin_interfaces/msg/Time.h"

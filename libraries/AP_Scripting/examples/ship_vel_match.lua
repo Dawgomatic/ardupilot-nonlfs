@@ -1,7 +1,5 @@
 -- support takeoff with velocity matching for quadplanes
 
----@diagnostic disable: need-check-nil
-
 local PARAM_TABLE_KEY = 35
 local PARAM_TABLE_PREFIX = "SHIPV_"
 

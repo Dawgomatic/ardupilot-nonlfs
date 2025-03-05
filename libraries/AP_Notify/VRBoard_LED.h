@@ -20,10 +20,6 @@
 
 #pragma once
 
-#include "AP_Notify_config.h"
-
-#if AP_NOTIFY_VRBOARD_LED_ENABLED
-
 #include "RGBLed.h"
 #include "AP_BoardLED.h"
 
@@ -35,5 +31,3 @@ public:
 protected:
     bool hw_set_rgb(uint8_t r, uint8_t g, uint8_t b) override;
 };
-
-#endif  // AP_NOTIFY_VRBOARD_LED_ENABLED

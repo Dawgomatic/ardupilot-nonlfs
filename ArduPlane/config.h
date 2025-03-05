@@ -2,6 +2,14 @@
 
 #include "defines.h"
 
+// Just so that it's completely clear...
+#define ENABLED                 1
+#define DISABLED                0
+
+// this avoids a very common config error
+#define ENABLE ENABLED
+#define DISABLE DISABLED
+
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 // HARDWARE CONFIGURATION AND CONNECTIONS
@@ -205,8 +213,22 @@
  # define FENCE_TRIGGERED_PIN -1
 #endif
 
-#ifndef AP_PLANE_OFFBOARD_GUIDED_SLEW_ENABLED
- #define AP_PLANE_OFFBOARD_GUIDED_SLEW_ENABLED 1
+//////////////////////////////////////////////////////////////////////////////
+// Parachute release
+#ifndef PARACHUTE
+#define PARACHUTE HAL_PARACHUTE_ENABLED
+#endif
+
+#ifndef STATS_ENABLED
+ # define STATS_ENABLED ENABLED
+#endif
+
+#ifndef OSD_ENABLED
+ #define OSD_ENABLED DISABLED
+#endif
+
+#ifndef OFFBOARD_GUIDED
+ #define OFFBOARD_GUIDED 1
 #endif
 
 //////////////////////////////////////////////////////////////////////////////

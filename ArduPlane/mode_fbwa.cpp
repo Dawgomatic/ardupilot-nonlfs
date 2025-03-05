@@ -35,11 +35,3 @@ void ModeFBWA::update()
         }
     }
 }
-
-void ModeFBWA::run()
-{
-    // Run base class function and then output throttle
-    Mode::run();
-
-    output_pilot_throttle();
-}

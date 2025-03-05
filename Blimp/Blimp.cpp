@@ -75,6 +75,7 @@ const AP_Scheduler::Task Blimp::scheduler_tasks[] = {
 #if AP_SERVORELAYEVENTS_ENABLED
     SCHED_TASK_CLASS(AP_ServoRelayEvents,  &blimp.ServoRelayEvents,      update_events, 50,     75,  27),
 #endif
+    SCHED_TASK_CLASS(AP_Baro,              &blimp.barometer,             accumulate,    50,     90,  30),
 #if HAL_LOGGING_ENABLED
     SCHED_TASK(full_rate_logging,     50,    50,  33),
 #endif
@@ -93,6 +94,9 @@ const AP_Scheduler::Task Blimp::scheduler_tasks[] = {
     SCHED_TASK_CLASS(AP_InertialSensor,    &blimp.ins,                 periodic,       400,  50,  66),
 #if HAL_LOGGING_ENABLED
     SCHED_TASK_CLASS(AP_Scheduler,         &blimp.scheduler,           update_logging, 0.1,  75,  69),
+#endif
+#if STATS_ENABLED == ENABLED
+    SCHED_TASK_CLASS(AP_Stats,             &blimp.g2.stats,            update,           1, 100,  75),
 #endif
 };
 
@@ -165,11 +169,9 @@ void Blimp::ten_hz_logging_loop()
     }
     if (should_log(MASK_LOG_RCIN)) {
         logger.Write_RCIN();
-#if AP_RSSI_ENABLED
         if (rssi.enabled()) {
             logger.Write_RSSI();
         }
-#endif
     }
     if (should_log(MASK_LOG_RCOUT)) {
         logger.Write_RCOUT();
@@ -210,7 +212,7 @@ void Blimp::one_hz_loop()
 #endif
 
     // update assigned functions and enable auxiliary servos
-    AP::srv().enable_aux_servos();
+    SRV_Channels::enable_aux_servos();
 
     AP_Notify::flags.flying = !ap.land_complete;
 
@@ -256,9 +258,7 @@ void Blimp::update_altitude()
 
 #if HAL_LOGGING_ENABLED
     if (should_log(MASK_LOG_CTUN)) {
-#if AP_INERTIALSENSOR_HARMONICNOTCH_ENABLED
         AP::ins().write_notch_log_messages();
-#endif
 #if HAL_GYROFFT_ENABLED
         gyro_fft.write_log_messages();
 #endif
@@ -289,6 +289,9 @@ void Blimp::rotate_NE_to_BF(Vector2f &vec)
  */
 Blimp::Blimp(void)
     :
+#if HAL_LOGGING_ENABLED
+      logger(g.log_bitmask),
+#endif
       flight_modes(&g.flight_mode1),
       control_mode(Mode::Number::MANUAL),
       rc_throttle_control_in_filter(1.0f),

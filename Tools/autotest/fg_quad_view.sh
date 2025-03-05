@@ -7,7 +7,7 @@ nice fgfs \
     --fdm=external \
     --aircraft=arducopter \
     --fg-aircraft="$AUTOTESTDIR/aircraft" \
-    --airport=KSFO \
+    --airport=YKRY \
     --geometry=650x550 \
     --bpp=32 \
     --disable-hud-3d \

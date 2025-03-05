@@ -15,9 +15,7 @@ void Copter::run_rate_controller()
     pos_control->set_dt(last_loop_time_s);
 
     // run low level rate controllers that only require IMU data
-    attitude_control->rate_controller_run();
-    // reset sysid and other temporary inputs
-    attitude_control->rate_controller_target_reset();
+    attitude_control->rate_controller_run(); 
 }
 
 /*************************************************************
@@ -62,11 +60,11 @@ void Copter::update_throttle_hover()
 float Copter::get_pilot_desired_climb_rate(float throttle_control)
 {
     // throttle failsafe check
-    if (failsafe.radio || !rc().has_ever_seen_rc_input()) {
+    if (failsafe.radio || !ap.rc_receiver_present) {
         return 0.0f;
     }
 
-#if TOY_MODE_ENABLED
+#if TOY_MODE_ENABLED == ENABLED
     if (g2.toy_mode.enabled()) {
         // allow throttle to be reduced after throttle arming and for
         // slower descent close to the ground

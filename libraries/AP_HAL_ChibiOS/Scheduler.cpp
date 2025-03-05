@@ -42,7 +42,6 @@
 #if CH_CFG_USE_DYNAMIC == TRUE
 
 #include <AP_Logger/AP_Logger.h>
-#include <AP_Math/AP_Math.h>
 #include <AP_Scheduler/AP_Scheduler.h>
 #include <AP_BoardConfig/AP_BoardConfig.h>
 #include "hwdef/common/stm32_util.h"
@@ -60,14 +59,6 @@ extern AP_IOMCU iomcu;
 
 using namespace ChibiOS;
 
-#ifndef HAL_RCIN_THREAD_ENABLED
-#define HAL_RCIN_THREAD_ENABLED 1
-#endif
-
-#ifndef HAL_MONITOR_THREAD_ENABLED
-#define HAL_MONITOR_THREAD_ENABLED 1
-#endif
-
 extern const AP_HAL::HAL& hal;
 #ifndef HAL_NO_TIMER_THREAD
 THD_WORKING_AREA(_timer_thread_wa, TIMER_THD_WA_SIZE);
@@ -75,7 +66,7 @@ THD_WORKING_AREA(_timer_thread_wa, TIMER_THD_WA_SIZE);
 #ifndef HAL_NO_RCOUT_THREAD
 THD_WORKING_AREA(_rcout_thread_wa, RCOUT_THD_WA_SIZE);
 #endif
-#if HAL_RCIN_THREAD_ENABLED
+#ifndef HAL_NO_RCIN_THREAD
 THD_WORKING_AREA(_rcin_thread_wa, RCIN_THD_WA_SIZE);
 #endif
 #ifndef HAL_USE_EMPTY_IO
@@ -84,7 +75,7 @@ THD_WORKING_AREA(_io_thread_wa, IO_THD_WA_SIZE);
 #ifndef HAL_USE_EMPTY_STORAGE
 THD_WORKING_AREA(_storage_thread_wa, STORAGE_THD_WA_SIZE);
 #endif
-#if HAL_MONITOR_THREAD_ENABLED
+#ifndef HAL_NO_MONITOR_THREAD
 THD_WORKING_AREA(_monitor_thread_wa, MONITOR_THD_WA_SIZE);
 #endif
 
@@ -104,7 +95,7 @@ void Scheduler::init()
     chBSemObjectInit(&_timer_semaphore, false);
     chBSemObjectInit(&_io_semaphore, false);
 
-#if HAL_MONITOR_THREAD_ENABLED
+#ifndef HAL_NO_MONITOR_THREAD
     // setup the monitor thread - this is used to detect software lockups
     _monitor_thread_ctx = chThdCreateStatic(_monitor_thread_wa,
                      sizeof(_monitor_thread_wa),
@@ -131,7 +122,7 @@ void Scheduler::init()
                      this);                     /* Thread parameter.    */
 #endif
 
-#if HAL_RCIN_THREAD_ENABLED
+#ifndef HAL_NO_RCIN_THREAD
     // setup the RCIN thread - this will call tasks at 1kHz
     _rcin_thread_ctx = chThdCreateStatic(_rcin_thread_wa,
                      sizeof(_rcin_thread_wa),
@@ -233,10 +224,7 @@ void Scheduler::delay(uint16_t ms)
         delay_microseconds(1000);
         if (_min_delay_cb_ms <= ms) {
             if (in_main_thread()) {
-                const auto old_task = hal.util->persistent_data.scheduler_task;
-                hal.util->persistent_data.scheduler_task = -4;
                 call_delay_cb();
-                hal.util->persistent_data.scheduler_task = old_task;
             }
         }
     }
@@ -411,7 +399,7 @@ bool Scheduler::in_expected_delay(void) const
     return false;
 }
 
-#if HAL_MONITOR_THREAD_ENABLED
+#ifndef HAL_NO_MONITOR_THREAD
 void Scheduler::_monitor_thread(void *arg)
 {
     Scheduler *sched = (Scheduler *)arg;
@@ -517,7 +505,7 @@ void Scheduler::_monitor_thread(void *arg)
 #endif
     }
 }
-#endif  // HAL_MONITOR_THREAD_ENABLED
+#endif // HAL_NO_MONITOR_THREAD
 
 void Scheduler::_rcin_thread(void *arg)
 {

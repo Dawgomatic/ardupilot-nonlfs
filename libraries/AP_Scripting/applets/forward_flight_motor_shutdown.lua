@@ -5,8 +5,6 @@
 -- slew up and down times allow to configure how fast the motors are disabled and re-enabled
 
 -- luacheck: only 0
----@diagnostic disable: cast-local-type
-
 
 -- Config
 
@@ -93,6 +91,7 @@ local slew
 local slew_pwm
 function update()
 
+  local switch_pos = switch:get_aux_switch_pos()
   if switch:get_aux_switch_pos() == 2 then
     if not script_enabled then
       gcs:send_text(0, "Lua: Forward flight motor shutdown enabled")

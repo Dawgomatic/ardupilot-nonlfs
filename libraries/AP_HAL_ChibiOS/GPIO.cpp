@@ -290,11 +290,11 @@ AP_HAL::DigitalSource* GPIO::channel(uint16_t pin)
 {
     struct gpio_entry *g = gpio_by_pin_num(pin);
     if (g != nullptr) {
-        return NEW_NOTHROW DigitalSource(g->pal_line);
+        return new DigitalSource(g->pal_line);
     }
 #if HAL_WITH_IO_MCU
     if (AP_BoardConfig::io_enabled() && iomcu.valid_GPIO_pin(pin)) {
-        return NEW_NOTHROW IOMCU_DigitalSource(pin);
+        return new IOMCU_DigitalSource(pin);
     }
 #endif
     return nullptr;

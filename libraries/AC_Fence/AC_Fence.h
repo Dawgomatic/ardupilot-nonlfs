@@ -6,7 +6,6 @@
 
 #include <inttypes.h>
 #include <AP_Common/AP_Common.h>
-#include <AP_Common/ExpandingString.h>
 #include <AP_Param/AP_Param.h>
 #include <AP_Math/AP_Math.h>
 #include <AC_Fence/AC_PolyFence_loader.h>
@@ -16,8 +15,6 @@
 #define AC_FENCE_TYPE_CIRCLE                        2       // circular horizontal fence (usually initiates an RTL)
 #define AC_FENCE_TYPE_POLYGON                       4       // polygon horizontal fence
 #define AC_FENCE_TYPE_ALT_MIN                       8       // low alt fence which usually initiates an RTL
-#define AC_FENCE_ARMING_FENCES  (AC_FENCE_TYPE_ALT_MAX | AC_FENCE_TYPE_CIRCLE | AC_FENCE_TYPE_POLYGON)
-#define AC_FENCE_ALL_FENCES (AC_FENCE_ARMING_FENCES | AC_FENCE_TYPE_ALT_MIN)
 
 // valid actions should a fence be breached
 #define AC_FENCE_ACTION_REPORT_ONLY                 0       // report to GCS that boundary has been breached but take no further action
@@ -37,19 +34,12 @@ class AC_Fence
 public:
     friend class AC_PolyFence_loader;
 
-    enum class AutoEnable : uint8_t
+    enum class AutoEnable
     {
         ALWAYS_DISABLED = 0,
-        ENABLE_ON_AUTO_TAKEOFF = 1, // enable on auto takeoff
-        ENABLE_DISABLE_FLOOR_ONLY = 2,  // enable on takeoff but disable floor on landing
-        ONLY_WHEN_ARMED = 3 // enable on arming
-    };
-
-    enum class MavlinkFenceActions : uint16_t
-    {
-        DISABLE_FENCE = 0,
-        ENABLE_FENCE = 1,
-        DISABLE_ALT_MIN_FENCE = 2
+        ALWAYS_ENABLED = 1,
+        ENABLE_DISABLE_FLOOR_ONLY = 2,
+        ONLY_WHEN_ARMED = 3
     };
 
     AC_Fence();
@@ -65,15 +55,10 @@ public:
     static AC_Fence *get_singleton() { return _singleton; }
 
     /// enable - allows fence to be enabled/disabled.
-    /// returns a bitmask of fences that were changed
-    uint8_t enable(bool value, uint8_t fence_types, bool update_auto_mask = true);
-
-    /// enable_configured - allows configured fences to be enabled/disabled.
-    /// returns a bitmask of fences that were changed
-    uint8_t enable_configured(bool value) { return enable(value, _configured_fences, true); }
+    void enable(bool value);
 
     /// auto_enabled - automaticaly enable/disable fence depending of flight status
-    AutoEnable auto_enabled() const { return static_cast<AutoEnable>(_auto_enabled.get()); }
+    AutoEnable auto_enabled() { return static_cast<AutoEnable>(_auto_enabled.get()); }
 
     /// enable_floor - allows fence floor to be enabled/disabled. Note this does not update the eeprom saved value
     void enable_floor();
@@ -84,39 +69,32 @@ public:
     /// auto_enable_fence_on_takeoff - auto enables the fence. Called after takeoff conditions met
     void auto_enable_fence_after_takeoff();
 
-    /// auto_enable_fences_on_arming - auto enables all applicable fences on arming
-    void auto_enable_fence_on_arming();
+    /// auto_disable_fence_for_landing - auto disables respective fence. Called prior to landing.
+    void auto_disable_fence_for_landing();
 
-    /// auto_disable_fences_on_disarming - auto disables all applicable fences on disarming
-    void auto_disable_fence_on_disarming();
+    /// enabled - returns true if fence is enabled
+    bool enabled() const { return _enabled; }
 
-    uint8_t get_auto_disable_fences(void) const;
-
-    /// auto_enable_fence_floor - auto enables fence floor once desired altitude has been reached.
-    bool auto_enable_fence_floor();
-
-    /// enabled - returns whether fencing is enabled or not
-    bool enabled() const { return _enabled_fences; }
-
-    /// present - returns true if any of the provided types is present
-    uint8_t present() const;
+    /// present - returns true if fence is present
+    bool present() const;
 
     /// get_enabled_fences - returns bitmask of enabled fences
     uint8_t get_enabled_fences() const;
 
     // should be called @10Hz to handle loading from eeprom
-    void update();
+    void update() {
+        _poly_loader.update();
+    }
 
     /// pre_arm_check - returns true if all pre-takeoff checks have completed successfully
-    bool pre_arm_check(char *failure_msg, const uint8_t failure_msg_len) const;
+    bool pre_arm_check(const char* &fail_msg) const;
 
     ///
     /// methods to check we are within the boundaries and recover
     ///
 
     /// check - returns the fence type that has been breached (if any)
-    /// disabled_fences can be used to disable fences for certain conditions (e.g. landing)
-    uint8_t check(bool disable_auto_fence = false);
+    uint8_t check();
 
     // returns true if the destination is within fence (used to reject waypoints outside the fence)
     bool check_destination_within_fence(const class Location& loc);
@@ -154,12 +132,6 @@ public:
     
     /// get_return_rally - returns whether returning to fence return point or rally point
     float get_return_altitude() const { return _ret_altitude; }
-
-    /// get a user-friendly list of fences
-    static void get_fence_names(uint8_t fences, ExpandingString& msg);
-
-    // print a message about the fences to the GCS
-    void print_fence_message(const char* msg, uint8_t fences) const;
 
     /// manual_recovery_start - caller indicates that pilot is re-taking manual control so fence should be disabled for 10 seconds
     ///     should be called whenever the pilot changes the flight mode
@@ -215,19 +187,14 @@ private:
     void clear_breach(uint8_t fence_type);
 
     // additional checks for the different fence types:
-    bool pre_arm_check_polygon(char *failure_msg, const uint8_t failure_msg_len) const;
-    bool pre_arm_check_circle(char *failure_msg, const uint8_t failure_msg_len) const;
-    bool pre_arm_check_alt(char *failure_msg, const uint8_t failure_msg_len) const;
-    // fence floor is enabled
-    bool floor_enabled() const { return _enabled_fences & AC_FENCE_TYPE_ALT_MIN; }
+    bool pre_arm_check_polygon(const char* &fail_msg) const;
+    bool pre_arm_check_circle(const char* &fail_msg) const;
+    bool pre_arm_check_alt(const char* &fail_msg) const;
 
     // parameters
-    uint8_t         _enabled_fences;        // fences that are currently enabled/disabled
-    bool            _last_enabled;          // value of enabled last time we checked
-    AP_Int8         _enabled;               // overall feature control
+    AP_Int8         _enabled;               // fence enable/disable control
     AP_Int8         _auto_enabled;          // top level flag for auto enabling fence
-    uint8_t         _last_auto_enabled;     // value of auto_enabled last time we checked
-    AP_Int8         _configured_fences;     // bit mask holding which fences are enabled
+    AP_Int8         _enabled_fences;        // bit mask holding which fences are enabled
     AP_Int8         _action;                // recovery action specified by user
     AP_Float        _alt_max;               // altitude upper limit in meters
     AP_Float        _alt_min;               // altitude lower limit in meters
@@ -249,7 +216,10 @@ private:
     float           _circle_breach_distance;    // distance beyond the circular fence
 
     // other internal variables
+    bool            _floor_enabled;         // fence floor is enabled
     float           _home_distance;         // distance from home in meters (provided by main code)
+    float           _curr_alt;
+
 
     // breach information
     uint8_t         _breached_fences;       // bitmask holding the fence type that was breached (i.e. AC_FENCE_TYPE_ALT_MIN, AC_FENCE_TYPE_CIRCLE)
@@ -259,13 +229,6 @@ private:
 
     uint32_t        _manual_recovery_start_ms;  // system time in milliseconds that pilot re-took manual control
 
-    enum class MinAltState
-    {
-        DEFAULT = 0,
-        MANUALLY_ENABLED,
-        MANUALLY_DISABLED
-    } _min_alt_state;
-    
 
     AC_PolyFence_loader _poly_loader{_total, _options}; // polygon fence
 };

@@ -60,10 +60,7 @@ private:
 class ScriptingCANBuffer {
 public:
 
-    ScriptingCANBuffer(ScriptingCANSensor &_sensor, uint32_t buffer_size):
-        buffer(buffer_size),
-        sensor(_sensor)
-    {};
+    ScriptingCANBuffer(ScriptingCANSensor &_sensor, uint32_t buffer_size):sensor(_sensor), buffer(buffer_size) {};
 
     // Call main sensor write method
     bool write_frame(AP_HAL::CANFrame &out_frame, const uint32_t timeout_us);

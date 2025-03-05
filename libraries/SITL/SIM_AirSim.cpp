@@ -55,14 +55,12 @@ AirSim::AirSim(const char *frame_str) :
 */
 void AirSim::set_interface_ports(const char* address, const int port_in, const int port_out)
 {
-    static const char *port_in_addr = "0.0.0.0";
-
-    if (!sock.bind(port_in_addr, port_in)) {
+	if (!sock.bind("0.0.0.0", port_in)) {
 		printf("Unable to bind Airsim sensor_in socket at port %u - Error: %s\n",
 				 port_in, strerror(errno));
 		return;
 	}
-	printf("Bind SITL sensor input at %s:%u\n", port_in_addr, port_in);
+	printf("Bind SITL sensor input at %s:%u\n", "127.0.0.1", port_in);
 	sock.set_blocking(false);
 	sock.reuseaddress();
 

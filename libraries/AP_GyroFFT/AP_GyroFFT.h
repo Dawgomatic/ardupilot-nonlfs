@@ -157,7 +157,7 @@ private:
         }
 
     private:
-        LowPassFilterConstDtFloat _lowpass_filter[XYZ_AXIS_COUNT];
+        LowPassFilterFloat _lowpass_filter[XYZ_AXIS_COUNT];
         FilterWithBuffer<float,3> _median_filter[XYZ_AXIS_COUNT];
     };
 
@@ -311,7 +311,7 @@ private:
     // smoothing filter on the bandwidth
     MedianLowPassFilter3dFloat _center_bandwidth_filter[FrequencyPeak::MAX_TRACKED_PEAKS];
     // smoothing filter on the frequency fit
-    LowPassFilterConstDtFloat _harmonic_fit_filter[XYZ_AXIS_COUNT];
+    LowPassFilterFloat _harmonic_fit_filter[XYZ_AXIS_COUNT];
 
     // configured sampling rate
     uint16_t _fft_sampling_rate_hz;

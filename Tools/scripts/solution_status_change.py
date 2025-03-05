@@ -17,11 +17,8 @@ from pymavlink import mavutil
 
 
 class SolutionStatusChange(object):
-    def __init__(self, master, core=None):
+    def __init__(self, master):
         self.master = master
-        self.core = core
-        if self.core is not None:
-            self.core = set(self.core)
 
     def progress(self, text):
         '''emit text with possible timestamps etc'''
@@ -56,12 +53,12 @@ class SolutionStatusChange(object):
         old_message_per_core = {}
         while True:
             m = self.conn.recv_match(type=desired_type)
+            if m.C != 0:
+                continue
             if m is None:
                 break
             if m.C not in old_message_per_core:
                 old_message_per_core[m.C] = m
-                continue
-            if self.core is not None and m.C not in self.core:
                 continue
             current = old_message_per_core[m.C]
             if m.SS == current.SS:
@@ -89,9 +86,6 @@ class SolutionStatusChange(object):
 if __name__ == '__main__':
     parser = optparse.OptionParser("solution-status-change.py [options]")
 
-    parser.add_option("", "--core", action="append", type="int",
-                      default=[], help="core to show (default is all)")
-
     (opts, args) = parser.parse_args()
 
     if len(args) < 1:
@@ -100,8 +94,5 @@ if __name__ == '__main__':
 
     master = args[0]
 
-    if len(opts.core) == 0:
-        opts.core = None
-
-    tester = SolutionStatusChange(master, core=opts.core)
+    tester = SolutionStatusChange(master)
     tester.run()

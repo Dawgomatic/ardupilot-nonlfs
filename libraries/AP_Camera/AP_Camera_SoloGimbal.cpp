@@ -12,7 +12,7 @@
 bool AP_Camera_SoloGimbal::trigger_pic()
 {
     if (gopro_status != GOPRO_HEARTBEAT_STATUS_CONNECTED) {
-        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "GoPro Not Available");
+        gcs().send_text(MAV_SEVERITY_ERROR, "GoPro Not Available");
         return false;
     }
 
@@ -21,21 +21,21 @@ bool AP_Camera_SoloGimbal::trigger_pic()
 
     if (gopro_capture_mode == GOPRO_CAPTURE_MODE_PHOTO) {
         // Trigger shutter start to take a photo
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "GoPro Photo Trigger");
+        gcs().send_text(MAV_SEVERITY_INFO, "GoPro Photo Trigger");
         mavlink_msg_gopro_set_request_send(heartbeat_channel, mavlink_system.sysid, MAV_COMP_ID_GIMBAL,GOPRO_COMMAND_SHUTTER,gopro_shutter_start);
 
     } else if (gopro_capture_mode == GOPRO_CAPTURE_MODE_VIDEO) {
         if (gopro_is_recording) {
             // GoPro is recording, so stop recording
-            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "GoPro Recording Stop");
+            gcs().send_text(MAV_SEVERITY_INFO, "GoPro Recording Stop");
             mavlink_msg_gopro_set_request_send(heartbeat_channel, mavlink_system.sysid, MAV_COMP_ID_GIMBAL,GOPRO_COMMAND_SHUTTER,gopro_shutter_stop);
         } else {
             // GoPro is not recording, so start recording
-            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "GoPro Recording Start");
+            gcs().send_text(MAV_SEVERITY_INFO, "GoPro Recording Start");
             mavlink_msg_gopro_set_request_send(heartbeat_channel, mavlink_system.sysid, MAV_COMP_ID_GIMBAL,GOPRO_COMMAND_SHUTTER,gopro_shutter_start);
         }
     } else {
-        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "GoPro Unsupported Capture Mode");
+        gcs().send_text(MAV_SEVERITY_ERROR, "GoPro Unsupported Capture Mode");
         return false;
     }
 
@@ -52,7 +52,7 @@ void AP_Camera_SoloGimbal::cam_mode_toggle()
     uint8_t gopro_capture_mode_values[4] = { };
 
     if (gopro_status != GOPRO_HEARTBEAT_STATUS_CONNECTED) {
-        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "GoPro Not Available");
+        gcs().send_text(MAV_SEVERITY_ERROR, "GoPro Not Available");
         return;
     }
 
@@ -60,12 +60,12 @@ void AP_Camera_SoloGimbal::cam_mode_toggle()
         case GOPRO_CAPTURE_MODE_VIDEO:
             if (gopro_is_recording) {
                 // GoPro is recording, cannot change modes
-                GCS_SEND_TEXT(MAV_SEVERITY_INFO, "GoPro recording, can't change modes");
+                gcs().send_text(MAV_SEVERITY_INFO, "GoPro recording, can't change modes");
             } else {
                 // Change to camera mode
                 gopro_capture_mode_values[0] = GOPRO_CAPTURE_MODE_PHOTO;
                 mavlink_msg_gopro_set_request_send(heartbeat_channel, mavlink_system.sysid, MAV_COMP_ID_GIMBAL,GOPRO_COMMAND_CAPTURE_MODE,gopro_capture_mode_values);
-                GCS_SEND_TEXT(MAV_SEVERITY_INFO, "GoPro changing to mode photo");
+                gcs().send_text(MAV_SEVERITY_INFO, "GoPro changing to mode photo");
             }
             break;
 
@@ -74,7 +74,7 @@ void AP_Camera_SoloGimbal::cam_mode_toggle()
             // Change to video mode
             gopro_capture_mode_values[0] =  GOPRO_CAPTURE_MODE_VIDEO;
             mavlink_msg_gopro_set_request_send(heartbeat_channel, mavlink_system.sysid, MAV_COMP_ID_GIMBAL,GOPRO_COMMAND_CAPTURE_MODE,gopro_capture_mode_values);
-            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "GoPro changing to mode video");
+            gcs().send_text(MAV_SEVERITY_INFO, "GoPro changing to mode video");
             break;
     }
 }

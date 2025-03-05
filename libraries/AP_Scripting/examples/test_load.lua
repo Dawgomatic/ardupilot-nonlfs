@@ -1,7 +1,6 @@
 --[[
  test the load function for loading new code from strings
 --]]
----@diagnostic disable: undefined-global
 
 gcs:send_text(0,"Testing load() method")
 

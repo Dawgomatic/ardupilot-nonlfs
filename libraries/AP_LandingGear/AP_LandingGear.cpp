@@ -168,7 +168,7 @@ void AP_LandingGear::deploy()
     // send message only if output has been configured
     if (!_deployed &&
         SRV_Channels::function_assigned(SRV_Channel::k_landing_gear_control)) {
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "LandingGear: DEPLOY");
+        gcs().send_text(MAV_SEVERITY_INFO, "LandingGear: DEPLOY");
     }
 
     // set deployed flag
@@ -194,7 +194,7 @@ void AP_LandingGear::retract()
 
     // send message only if output has been configured
     if (SRV_Channels::function_assigned(SRV_Channel::k_landing_gear_control)) {
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "LandingGear: RETRACT");
+        gcs().send_text(MAV_SEVERITY_INFO, "LandingGear: RETRACT");
     }
 }
 

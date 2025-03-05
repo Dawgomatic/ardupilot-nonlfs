@@ -32,12 +32,14 @@
 
 extern const AP_HAL::HAL& hal;
 
-#if HAL_GCS_ENABLED
 /*
   request any missing 4x4 grids from a block, given a grid_cache
  */
 bool AP_Terrain::request_missing(mavlink_channel_t chan, struct grid_cache &gcache)
 {
+#if !HAL_GCS_ENABLED
+    return false;
+#else
     struct grid_block &grid = gcache.grid;
 
     if (options.get() & uint16_t(Options::DisableDownload)) {
@@ -73,6 +75,7 @@ bool AP_Terrain::request_missing(mavlink_channel_t chan, struct grid_cache &gcac
     last_request_time_ms[chan] = AP_HAL::millis();
 
     return true;
+#endif
 }
 
 /*
@@ -115,11 +118,16 @@ void AP_Terrain::send_request(mavlink_channel_t chan)
 
     Location loc;
     if (!AP::ahrs().get_location(loc)) {
-        // we don't know where we are. Request any cached blocks.
+        // we don't know where we are. Send a report and request any cached blocks.
         // this allows for download of mission items when we have no GPS lock
+        loc = {};
+        send_terrain_report(chan, loc, true);
         send_cache_request(chan);
         return;
     }
+
+    // always send a terrain report
+    send_terrain_report(chan, loc, true);
 
     // did we request recently?
     if (AP_HAL::millis() - last_request_time_ms[chan] < 2000) {
@@ -149,7 +157,6 @@ void AP_Terrain::send_request(mavlink_channel_t chan)
         return;
     }
 }
-#endif  // HAL_GCS_ENABLED
 
 /*
   count bits in a uint64_t
@@ -189,8 +196,7 @@ void AP_Terrain::get_statistics(uint16_t &pending, uint16_t &loaded) const
     }
 }
 
-#if HAL_GCS_ENABLED
-/*
+/* 
    handle terrain messages from GCS
  */
 void AP_Terrain::handle_data(mavlink_channel_t chan, const mavlink_message_t &msg)
@@ -202,18 +208,6 @@ void AP_Terrain::handle_data(mavlink_channel_t chan, const mavlink_message_t &ms
     }
 }
 
-/*
-   send a TERRAIN_REPORT for the current location
- */
-void AP_Terrain::send_report(mavlink_channel_t chan)
-{
-    Location loc;
-    if (!AP::ahrs().get_location(loc)) {
-        loc = {};
-    }
-
-    send_terrain_report(chan, loc, true);
-}
 
 /* 
    send a TERRAIN_REPORT for a location
@@ -318,7 +312,6 @@ void AP_Terrain::handle_terrain_data(const mavlink_message_t &msg)
     // see if we need to schedule some disk IO
     update();
 }
-#endif  // HAL_GCS_ENABLED
 
 
 #endif // AP_TERRAIN_AVAILABLE

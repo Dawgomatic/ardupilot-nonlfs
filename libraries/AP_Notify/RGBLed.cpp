@@ -20,7 +20,6 @@
 #include <AP_GPS/AP_GPS.h>
 #include "RGBLed.h"
 #include "AP_Notify.h"
-#include <AP_AHRS/AP_AHRS.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -48,15 +47,15 @@ void RGBLed::_set_rgb(uint8_t red, uint8_t green, uint8_t blue)
     }
 }
 
-RGBLed::Source RGBLed::rgb_source() const
+RGBLed::rgb_source_t RGBLed::rgb_source() const
 {
-    return Source(pNotify->_rgb_led_override.get());
+    return rgb_source_t(pNotify->_rgb_led_override.get());
 }
 
 // set_rgb - set color as a combination of red, green and blue values
 void RGBLed::set_rgb(uint8_t red, uint8_t green, uint8_t blue)
 {
-    if (rgb_source() == Source::mavlink) {
+    if (rgb_source() == mavlink) {
         // don't set if in override mode
         return;
     }
@@ -137,45 +136,33 @@ uint32_t RGBLed::get_colour_sequence(void) const
         return sequence_failsafe_radio_or_battery;
     }
 
-#if AP_GPS_ENABLED
-    Location loc;
-#if AP_AHRS_ENABLED
-    // the AHRS can return "true" for get_location and still not be
-    // happy enough with the location to set its origin from that
-    // location:
-    const bool good_ahrs_location = AP::ahrs().get_location(loc) && AP::ahrs().get_origin(loc);
-#else
-    const bool good_ahrs_location = true;
-#endif
-
     // solid green or blue if armed
     if (AP_Notify::flags.armed) {
 #if AP_GPS_ENABLED
-        // solid green if armed with GPS 3d lock and good location
-        if (AP_Notify::flags.gps_status >= AP_GPS::GPS_OK_FIX_3D &&
-            good_ahrs_location) {
+        // solid green if armed with GPS 3d lock
+        if (AP_Notify::flags.gps_status >= AP_GPS::GPS_OK_FIX_3D) {
             return sequence_armed;
         }
 #endif
         // solid blue if armed with no GPS lock
-        return sequence_armed_no_gps_or_no_location;
+        return sequence_armed_nogps;
     }
 
     // double flash yellow if failing pre-arm checks
     if (!AP_Notify::flags.pre_arm_check) {
         return sequence_prearm_failing;
     }
-    if (AP_Notify::flags.pre_arm_gps_check && good_ahrs_location) {
-        if (AP_Notify::flags.gps_status >= AP_GPS::GPS_OK_FIX_3D_DGPS) {
-            return sequence_disarmed_good_dgps_and_location;
-        }
-        if (AP_Notify::flags.gps_status >= AP_GPS::GPS_OK_FIX_3D) {
-            return sequence_disarmed_good_gps_and_location;
-        }
+#if AP_GPS_ENABLED
+    if (AP_Notify::flags.gps_status >= AP_GPS::GPS_OK_FIX_3D_DGPS && AP_Notify::flags.pre_arm_gps_check) {
+        return sequence_disarmed_good_dgps;
+    }
+
+    if (AP_Notify::flags.gps_status >= AP_GPS::GPS_OK_FIX_3D && AP_Notify::flags.pre_arm_gps_check) {
+        return sequence_disarmed_good_gps;
     }
 #endif
 
-    return sequence_disarmed_bad_gps_or_no_location;
+    return sequence_disarmed_bad_gps;
 }
 
 uint32_t RGBLed::get_colour_sequence_traffic_light(void) const
@@ -209,16 +196,16 @@ void RGBLed::update()
     uint32_t current_colour_sequence = 0;
 
     switch (rgb_source()) {
-    case Source::mavlink:
+    case mavlink:
         update_override();
         return; // note this is a return not a break!
-    case Source::standard:
+    case standard:
         current_colour_sequence = get_colour_sequence();
         break;
-    case Source::obc:
+    case obc:
         current_colour_sequence = get_colour_sequence_obc();
         break;
-    case Source::traffic_light:
+    case traffic_light:
         current_colour_sequence = get_colour_sequence_traffic_light();
         break;
     }
@@ -248,7 +235,7 @@ void RGBLed::update()
 */
 void RGBLed::handle_led_control(const mavlink_message_t &msg)
 {
-    if (rgb_source() != Source::mavlink) {
+    if (rgb_source() != mavlink) {
         // ignore LED_CONTROL commands if not in LED_OVERRIDE mode
         return;
     }

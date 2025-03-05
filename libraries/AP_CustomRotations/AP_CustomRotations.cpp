@@ -1,13 +1,11 @@
-#include "AP_CustomRotations_config.h"
-
-#if AP_CUSTOMROTATIONS_ENABLED
-
 #include "AP_CustomRotations.h"
 
 #include <AP_InternalError/AP_InternalError.h>
 #include <AP_Vehicle/AP_Vehicle_Type.h>
 #include <AP_HAL/AP_HAL_Boards.h>
 #include <AP_BoardConfig/AP_BoardConfig.h>
+
+#if !APM_BUILD_TYPE(APM_BUILD_AP_Periph)
 
 const AP_Param::GroupInfo AP_CustomRotations::var_info[] = {
 
@@ -139,7 +137,7 @@ AP_CustomRotation* AP_CustomRotations::get_rotation(Rotation r)
     }
     const uint8_t index = r - ROTATION_CUSTOM_1;
     if (rotations[index] == nullptr) {
-        rotations[index] = NEW_NOTHROW AP_CustomRotation(params[index]);
+        rotations[index] = new AP_CustomRotation(params[index]);
          // make sure param is enabled if custom rotation is used
         enable.set_and_save_ifchanged(1);
     }
@@ -158,4 +156,4 @@ AP_CustomRotations &custom_rotations()
 
 }
 
-#endif  // AP_CUSTOMROTATIONS_ENABLED
+#endif // !APM_BUILD_TYPE(APM_BUILD_AP_Periph)

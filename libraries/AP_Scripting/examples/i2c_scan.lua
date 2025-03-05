@@ -1,7 +1,4 @@
 -- This script scans for devices on the i2c bus
-
----@diagnostic disable: need-check-nil
-
 local address = 0
 local found = 0
 

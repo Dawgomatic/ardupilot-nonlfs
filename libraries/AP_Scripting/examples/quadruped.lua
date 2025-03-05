@@ -19,8 +19,6 @@
 --
 -- CAUTION: This script should only be used with ArduPilot Rover's firmware
 
----@diagnostic disable: cast-local-type
-
 
 local FRAME_LEN = 80    -- frame length in mm
 local FRAME_WIDTH = 150 -- frame width in mm

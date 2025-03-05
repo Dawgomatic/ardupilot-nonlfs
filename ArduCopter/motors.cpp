@@ -16,11 +16,10 @@ void Copter::arm_motors_check()
     // check if arming/disarm using rudder is allowed
     AP_Arming::RudderArming arming_rudder = arming.get_rudder_arming_type();
     if (arming_rudder == AP_Arming::RudderArming::IS_DISABLED) {
-        arming_counter = 0;
         return;
     }
 
-#if TOY_MODE_ENABLED
+#if TOY_MODE_ENABLED == ENABLED
     if (g2.toy_mode.enabled()) {
         // not armed with sticks in toy mode
         return;
@@ -135,7 +134,7 @@ void Copter::auto_disarm_check()
 // motors_output - send output to motors library which will adjust and send to ESCs and servos
 void Copter::motors_output()
 {
-#if AP_COPTER_ADVANCED_FAILSAFE_ENABLED
+#if ADVANCED_FAILSAFE == ENABLED
     // this is to allow the failsafe module to deliberately crash
     // the vehicle. Only used in extreme circumstances to meet the
     // OBC rules
@@ -156,10 +155,8 @@ void Copter::motors_output()
     // output any servo channels
     SRV_Channels::calc_pwm();
 
-    auto &srv = AP::srv();
-
     // cork now, so that all channel outputs happen at once
-    srv.cork();
+    SRV_Channels::cork();
 
     // update output on any aux channels, for manual passthru
     SRV_Channels::output_ch_all();
@@ -183,7 +180,7 @@ void Copter::motors_output()
     }
 
     // push all channels
-    srv.push();
+    SRV_Channels::push();
 }
 
 // check for pilot stick input to trigger lost vehicle alarm

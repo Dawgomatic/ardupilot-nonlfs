@@ -24,14 +24,12 @@ The param SCR_VM_I_COUNT may need to be increased in some circumstances
 Written by Stephen Dade (stephen_dade@hotmail.com)
 ]]--
 
----@diagnostic disable: cast-local-type
-
 local PARAM_TABLE_KEY = 10
 local PARAM_TABLE_PREFIX = "RCK_"
 
 local port = serial:find_serial(0)
 
-if not port then
+if not port or baud == 0 then
     gcs:send_text(0, "Rockblock: No Scripting Serial Port")
     return
 end

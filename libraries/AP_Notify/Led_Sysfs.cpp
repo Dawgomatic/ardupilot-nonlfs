@@ -14,11 +14,12 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "AP_Notify_config.h"
+#include <AP_HAL/AP_HAL.h>
 
-#if AP_NOTIFY_SYSFS_LED_ENABLED
-
+#if CONFIG_HAL_BOARD == HAL_BOARD_LINUX
 #include "Led_Sysfs.h"
+
+#include <AP_HAL_Linux/Led_Sysfs.h>
 
 Led_Sysfs::Led_Sysfs(const char *red, const char *green, const char *blue,
                     uint8_t off_brightness, uint8_t low_brightness, uint8_t medium_brightness, uint8_t high_brightness):
@@ -46,4 +47,4 @@ bool Led_Sysfs::hw_set_rgb(uint8_t red, uint8_t green, uint8_t blue)
 
     return true;
 }
-#endif  // AP_NOTIFY_SYSFS_LED_ENABLED
+#endif

@@ -7,7 +7,7 @@
 #include <sys/time.h>
 #include <fenv.h>
 #include <AP_BoardConfig/AP_BoardConfig.h>
-#if defined (__clang__) || (defined (__APPLE__) && defined (__MACH__)) || defined (__OpenBSD__)
+#if defined (__clang__) || (defined (__APPLE__) && defined (__MACH__))
 #include <stdlib.h>
 #else
 #include <malloc.h>
@@ -128,11 +128,6 @@ bool Scheduler::semaphore_wait_hack_required() const
 
 void Scheduler::delay_microseconds(uint16_t usec)
 {
-    if (_sitlState->_sitl == nullptr) {
-        // this allows examples to run
-        hal.scheduler->stop_clock(AP_HAL::micros64()+usec);
-        return;
-    }
     uint64_t start = AP_HAL::micros64();
     do {
         uint64_t dtime = AP_HAL::micros64() - start;
@@ -290,7 +285,7 @@ void Scheduler::_run_io_procs()
     check_thread_stacks();
 #endif
 
-#if AP_RCPROTOCOL_ENABLED
+#ifndef HAL_BUILD_AP_PERIPH
     AP::RC().update();
 #endif
 }
@@ -301,7 +296,7 @@ void Scheduler::_run_io_procs()
 void Scheduler::stop_clock(uint64_t time_usec)
 {
     _stopped_clock_usec = time_usec;
-    if (_sitlState->_sitl != nullptr && time_usec - _last_io_run > 10000) {
+    if (time_usec - _last_io_run > 10000) {
         _last_io_run = time_usec;
         _run_io_procs();
     }
@@ -351,7 +346,7 @@ bool Scheduler::thread_create(AP_HAL::MemberProc proc, const char *name, uint32_
     pthread_t thread {};
     const uint32_t alloc_stack = MAX(size_t(PTHREAD_STACK_MIN),stack_size);
 
-    struct thread_attr *a = NEW_NOTHROW struct thread_attr;
+    struct thread_attr *a = new struct thread_attr;
     if (!a) {
         return false;
     }
@@ -385,7 +380,7 @@ bool Scheduler::thread_create(AP_HAL::MemberProc proc, const char *name, uint32_
         goto failed;
     }
 
-#if !defined(__APPLE__) && !defined(__OpenBSD__)
+#if !defined(__APPLE__)
     pthread_setname_np(thread, name);
 #endif
 

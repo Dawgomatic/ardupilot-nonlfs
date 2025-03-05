@@ -155,7 +155,6 @@ class SizeCompareBranches(object):
             'iomcu-dshot',
             'iomcu-f103',
             'iomcu-f103-dshot',
-            'iomcu-f103-8MHz-dshot',
             'iomcu_f103_8MHz',
             'luminousbee4',
             'skyviper-v2450',
@@ -166,7 +165,6 @@ class SizeCompareBranches(object):
             'SITL_arm_linux_gnueabihf',
             'RADIX2HD',
             'canzero',
-            'CUAV-Pixhack-v3',  # uses USE_BOOTLOADER_FROM_BOARD
         ])
 
         # blacklist all linux boards for bootloader build:
@@ -455,8 +453,8 @@ class SizeCompareBranches(object):
 
         thread_number = 0
         while len(self.parallel_tasks) or len(threads):
-            if len(self.parallel_tasks) < self.n_threads:
-                self.n_threads = len(self.parallel_tasks)
+            if len(tasks) < self.n_threads:
+                self.n_threads = len(tasks)
             while len(threads) < self.n_threads:
                 self.progress(f"Starting thread {thread_number}")
                 t = threading.Thread(
@@ -485,9 +483,8 @@ class SizeCompareBranches(object):
             for task in tasks:
                 task_results.append(self.gather_results_for_task(task))
             # progress CSV:
-            csv_for_results = self.csv_for_results(self.compare_task_results(task_results, no_elf_diff=True))
-            path = pathlib.Path("/tmp/some.csv")
-            path.write_text(csv_for_results)
+            with open("/tmp/some.csv", "w") as f:
+                f.write(self.csv_for_results(self.compare_task_results(task_results, no_elf_diff=True)))
 
             time.sleep(1)
         self.progress("All threads returned")

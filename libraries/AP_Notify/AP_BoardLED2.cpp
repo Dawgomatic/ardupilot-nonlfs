@@ -11,18 +11,15 @@
 
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-
-   show all status on only 2 leds
  */
-
-#include "AP_Notify_config.h"
-
-#if AP_NOTIFY_GPIO_LED_2_ENABLED
-
 #include "AP_BoardLED2.h"
 
 #include "AP_Notify.h"
+
+
+// show all status on only 2 leds
+
+#if defined(HAL_GPIO_A_LED_PIN) && defined(HAL_GPIO_B_LED_PIN)
 
 static_assert((HAL_GPIO_A_LED_PIN != HAL_GPIO_B_LED_PIN), "Duplicate LED assignments detected");
 
@@ -266,5 +263,7 @@ void AP_BoardLED2::update(void)
             break;        
     }
 }
-
-#endif  // AP_NOTIFY_GPIO_LED_2_ENABLED
+#else
+bool AP_BoardLED2::init(void) {return true;}
+void AP_BoardLED2::update(void) {return;}
+#endif

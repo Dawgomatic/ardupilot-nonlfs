@@ -33,10 +33,8 @@ const AP_HAL::HAL& hal = AP_HAL::get_HAL();                     //Declare "hal" 
 
 static AP_BoardConfig board_config;
 
-#if AP_NOTIFY_GPIO_LED_3_ENABLED
 // create board led object
 AP_BoardLED board_led;
-#endif
 
 // create fake gcs object
 GCS_Dummy _gcs;                                                 //gcs stands for Ground Control Station
@@ -63,14 +61,12 @@ void setup()
 
     board_config.init();
 
-#if AP_NOTIFY_GPIO_LED_3_ENABLED
     // Initialise the leds
     board_led.init();
-#endif
 
     // Initialize the UART for GPS system
     serial_manager.init();
-    gps.init();
+    gps.init(serial_manager);
 }
 
 

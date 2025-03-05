@@ -9,7 +9,7 @@
 // radius looks like an integer as a backwards-compatibility measure.
 // For 4.2 we might consider only loading _INT and always saving as
 // float, and in 4.3 considering _INT invalid
-enum class AC_PolyFenceType : uint8_t {
+enum class AC_PolyFenceType {
     END_OF_STORAGE        = 99,
     POLYGON_INCLUSION     = 98,
     POLYGON_EXCLUSION     = 97,

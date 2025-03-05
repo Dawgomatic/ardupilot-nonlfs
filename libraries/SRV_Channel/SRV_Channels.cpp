@@ -41,7 +41,27 @@ extern const AP_HAL::HAL& hal;
 SRV_Channel *SRV_Channels::channels;
 SRV_Channels *SRV_Channels::_singleton;
 
+#if AP_VOLZ_ENABLED
+AP_Volz_Protocol *SRV_Channels::volz_ptr;
+#endif
+
+#if AP_SBUSOUTPUT_ENABLED
+AP_SBusOut *SRV_Channels::sbus_ptr;
+#endif
+
+#if AP_ROBOTISSERVO_ENABLED
+AP_RobotisServo *SRV_Channels::robotis_ptr;
+#endif
+
+#if AP_FETTEC_ONEWIRE_ENABLED
+AP_FETtecOneWire *SRV_Channels::fetteconwire_ptr;
+#endif
+
 uint16_t SRV_Channels::override_counter[NUM_SERVO_CHANNELS];
+
+#if HAL_SUPPORT_RCOUT_SERIAL
+AP_BLHeli *SRV_Channels::blheli_ptr;
+#endif
 
 uint32_t SRV_Channels::disabled_mask;
 uint32_t SRV_Channels::digital_mask;
@@ -209,7 +229,7 @@ const AP_Param::GroupInfo SRV_Channels::var_info[] = {
     // @Param: _DSHOT_ESC
     // @DisplayName: Servo DShot ESC type
     // @Description: DShot ESC type for all outputs. The ESC type affects the range of DShot commands available and the bit widths used. None means that no dshot commands will be executed. Some ESC types support Extended DShot Telemetry (EDT) which allows telemetry other than RPM data to be returned when using bi-directional dshot. If you enable EDT you must install EDT capable firmware for correct operation.
-    // @Values: 0:None,1:BLHeli32/Kiss/AM32,2:BLHeli_S/BlueJay,3:BLHeli32/AM32/Kiss+EDT,4:BLHeli_S/BlueJay+EDT
+    // @Values: 0:None,1:BLHeli32/Kiss,2:BLHeli_S,3:BLHeli32/Kiss+EDT,4:BLHeli_S+EDT
     // @User: Advanced
     AP_GROUPINFO("_DSHOT_ESC",  24, SRV_Channels, dshot_esc_type, 0),
 
@@ -359,6 +379,26 @@ SRV_Channels::SRV_Channels(void)
         }
 #endif
     }
+
+#if AP_FETTEC_ONEWIRE_ENABLED
+    fetteconwire_ptr = &fetteconwire;
+#endif
+
+#if AP_VOLZ_ENABLED
+    volz_ptr = &volz;
+#endif
+
+#if AP_SBUSOUTPUT_ENABLED
+    sbus_ptr = &sbus;
+#endif
+
+#if AP_ROBOTISSERVO_ENABLED
+    robotis_ptr = &robotis;
+#endif // AP_ROBOTISSERVO_ENABLED
+
+#if HAL_SUPPORT_RCOUT_SERIAL
+    blheli_ptr = &blheli;
+#endif
 }
 
 // SRV_Channels initialization
@@ -366,7 +406,7 @@ void SRV_Channels::init(uint32_t motor_mask, AP_HAL::RCOutput::output_mode mode)
 {
     // initialize BLHeli late so that all of the masks it might setup don't get trodden on by motor initialization
 #if HAL_SUPPORT_RCOUT_SERIAL
-    blheli.init(motor_mask, mode);
+    blheli_ptr->init(motor_mask, mode);
 #endif
 #ifndef HAL_BUILD_AP_PERIPH
     hal.rcout->set_dshot_rate(_singleton->dshot_rate, AP::scheduler().get_loop_rate_hz());
@@ -434,17 +474,6 @@ void SRV_Channels::set_output_pwm_chan(uint8_t chan, uint16_t value)
     }
 }
 
-// get output value for a specific channel as a pwm value
-bool SRV_Channels::get_output_pwm_chan(uint8_t chan, uint16_t &value)
-{
-    if (chan >= NUM_SERVO_CHANNELS) {
-        return false;
-    }
-    value = channels[chan].get_output_pwm();
-    return true;
-}
-
-#if AP_SCRIPTING_ENABLED && AP_SCHEDULER_ENABLED
 // set output value for a specific function channel as a pwm value with loop based timeout
 // timeout_ms of zero will clear override of the channel
 // minimum override is 1 MAIN_LOOP
@@ -470,7 +499,6 @@ void SRV_Channels::set_output_pwm_chan_timeout(uint8_t chan, uint16_t value, uin
         }
     }
 }
-#endif  // AP_SCRIPTING_ENABLED
 
 /*
   wrapper around hal.rcout->cork()
@@ -489,26 +517,26 @@ void SRV_Channels::push()
 
 #if AP_VOLZ_ENABLED
     // give volz library a chance to update
-    volz.update();
+    volz_ptr->update();
 #endif
 
 #if AP_SBUSOUTPUT_ENABLED
     // give sbus library a chance to update
-    sbus.update();
+    sbus_ptr->update();
 #endif
 
 #if AP_ROBOTISSERVO_ENABLED
     // give robotis library a chance to update
-    robotis.update();
+    robotis_ptr->update();
 #endif
 
 #if HAL_SUPPORT_RCOUT_SERIAL
     // give blheli telemetry a chance to update
-    blheli.update_telemetry();
+    blheli_ptr->update_telemetry();
 #endif
 
 #if AP_FETTEC_ONEWIRE_ENABLED
-    fetteconwire.update();
+    fetteconwire_ptr->update();
 #endif
 
 #if AP_KDECAN_ENABLED
@@ -555,12 +583,11 @@ void SRV_Channels::zero_rc_outputs()
      * send an invalid signal to all channels to prevent
      * undesired/unexpected behavior
      */
-    auto &srv = AP::srv();
-    srv.cork();
+    cork();
     for (uint8_t i=0; i<NUM_SERVO_CHANNELS; i++) {
         hal.rcout->write(i, 0);
     }
-    srv.push();
+    push();
 }
 
 /*
@@ -590,12 +617,3 @@ void SRV_Channels::set_emergency_stop(bool state) {
 #endif
     emergency_stop = state;
 }
-
-namespace AP {
-
-SRV_Channels &srv()
-{
-    return *SRV_Channels::get_singleton();
-}
-
-};

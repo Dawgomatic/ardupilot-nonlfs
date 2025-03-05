@@ -57,7 +57,7 @@ private:
     void set_filter_and_scaling_icm42670(void);
     void set_filter_and_scaling_icm456xy(void);
     void fifo_reset();
-    uint16_t calculate_fast_sampling_backend_rate(uint16_t base_backend_rate, uint16_t max_backend_rate) const;
+    uint16_t calculate_fast_sampling_backend_rate(uint16_t base_odr, uint16_t max_odr) const;
 
     /* Read samples from FIFO */
     void read_fifo();
@@ -73,6 +73,10 @@ private:
 
     bool accumulate_samples(const struct FIFOData *data, uint8_t n_samples);
     bool accumulate_highres_samples(const struct FIFODataHighRes *data, uint8_t n_samples);
+
+    // instance numbers of accel and gyro data
+    uint8_t gyro_instance;
+    uint8_t accel_instance;
 
     // reset FIFO configure1 register
     uint8_t fifo_config1;
@@ -140,5 +144,4 @@ private:
 
     float temp_filtered;
     LowPassFilter2pFloat temp_filter;
-    uint32_t sampling_rate_hz;
 };

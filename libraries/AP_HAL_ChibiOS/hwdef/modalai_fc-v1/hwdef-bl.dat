@@ -10,7 +10,8 @@ OSCILLATOR_HZ 16000000
 # board ID for firmware load
 APJ_BOARD_ID 41775
 
-
+# default to all pins low to avoid ESD issues
+DEFAULTGPIO OUTPUT LOW PULLDOWN
 
 FLASH_SIZE_KB 2048
 

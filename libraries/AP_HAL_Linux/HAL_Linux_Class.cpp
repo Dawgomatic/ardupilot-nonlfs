@@ -165,7 +165,7 @@ static RCInput_PRU rcinDriver;
       CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_POCKET
 static RCInput_AioPRU rcinDriver;
 #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BLUE
-static RCInput_Multi rcinDriver{2, NEW_NOTHROW RCInput_AioPRU, NEW_NOTHROW RCInput_RCProtocol(NULL, "/dev/ttyO4")};
+static RCInput_Multi rcinDriver{2, new RCInput_AioPRU, new RCInput_RCProtocol(NULL, "/dev/ttyO4")};
 #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_NAVIO || \
       CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_ERLEBRAIN2 || \
       CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BH || \
@@ -180,7 +180,7 @@ static RCInput_ZYNQ rcinDriver;
 #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BEBOP
 static RCInput_UDP  rcinDriver;
 #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_DISCO
-static RCInput_Multi rcinDriver{2, NEW_NOTHROW RCInput_RCProtocol("/dev/uart-sbus", "/dev/uart-sumd"), NEW_NOTHROW RCInput_UDP()};
+static RCInput_Multi rcinDriver{2, new RCInput_RCProtocol("/dev/uart-sbus", "/dev/uart-sumd"), new RCInput_UDP()};
 #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_AERO
 static RCInput_SoloLink rcinDriver;
 #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_NAVIO2 || \
@@ -467,11 +467,7 @@ void HAL_Linux::run(int argc, char* const argv[], Callbacks* callbacks) const
         }
     }
 
-    // NOTE: signal handlers are only set before the main loop, so
-    // that if anything before the loops hangs, the default signals
-    // can still stop the process proprely, although without proper
-    // teardown.
-    // This isn't perfect, but still prevents an unkillable process.
+    setup_signal_handlers();
 
     scheduler->init();
     gpio->init();
@@ -500,8 +496,6 @@ void HAL_Linux::run(int argc, char* const argv[], Callbacks* callbacks) const
 #if AP_MODULE_SUPPORTED
     AP_Module::call_hook_setup_complete();
 #endif
-
-    setup_signal_handlers();
 
     while (!_should_exit) {
         callbacks->loop();

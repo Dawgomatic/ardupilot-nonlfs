@@ -9,8 +9,6 @@
 #else
 #include <time.h>
 #endif
-#include <AP_InternalError/AP_InternalError.h>
-#include <AP_Math/AP_Math.h>
 
 /* Helper class implements AP_HAL::Print so we can use utility/vprintf */
 class BufferPrinter : public AP_HAL::BetterStream {

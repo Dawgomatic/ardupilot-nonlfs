@@ -2,7 +2,6 @@
  support package place for quadplanes
 --]]
 -- luacheck: only 0
----@diagnostic disable: param-type-mismatch
 
 
 local PARAM_TABLE_KEY = 9

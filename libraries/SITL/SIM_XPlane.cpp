@@ -30,6 +30,7 @@
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Filesystem/AP_Filesystem.h>
 #include <SRV_Channel/SRV_Channel.h>
+#include "picojson.h"
 #include <AP_Vehicle/AP_Vehicle_Type.h>
 
 // ignore cast errors in this case to keep complexity down
@@ -105,7 +106,7 @@ XPlane::XPlane(const char *frame_str) :
 
     // XPlane sensor data is not good enough for EKF. Use fake EKF by default
     AP_Param::set_default_by_name("AHRS_EKF_TYPE", 10);
-    AP_Param::set_default_by_name("GPS1_TYPE", 100);
+    AP_Param::set_default_by_name("GPS_TYPE", 100);
     AP_Param::set_default_by_name("INS_GYR_CAL", 0);
 
 #if APM_BUILD_TYPE(APM_BUILD_ArduPlane)
@@ -123,9 +124,9 @@ XPlane::XPlane(const char *frame_str) :
 /*
   add one DRef to list
  */
-void XPlane::add_dref(const char *name, DRefType type, const AP_JSON::value &dref)
+void XPlane::add_dref(const char *name, DRefType type, const picojson::value &dref)
 {
-    struct DRef *d = NEW_NOTHROW struct DRef;
+    struct DRef *d = new struct DRef;
     if (d == nullptr) {
         AP_HAL::panic("out of memory for DRef %s", name);
     }
@@ -148,10 +149,10 @@ void XPlane::add_dref(const char *name, DRefType type, const AP_JSON::value &dre
 /*
   add one joystick axis to list
  */
-void XPlane::add_joyinput(const char *label, JoyType type, const AP_JSON::value &d)
+void XPlane::add_joyinput(const char *label, JoyType type, const picojson::value &d)
 {
     if (strncmp(label, "axis", 4) == 0) {
-        struct JoyInput *j = NEW_NOTHROW struct JoyInput;
+        struct JoyInput *j = new struct JoyInput;
         if (j == nullptr) {
             AP_HAL::panic("out of memory for JoyInput %s", label);
         }
@@ -164,7 +165,7 @@ void XPlane::add_joyinput(const char *label, JoyType type, const AP_JSON::value 
         joyinputs = j;
     }
     if (strncmp(label, "button", 6) == 0) {
-        struct JoyInput *j = NEW_NOTHROW struct JoyInput;
+        struct JoyInput *j = new struct JoyInput;
         if (j == nullptr) {
             AP_HAL::panic("out of memory for JoyInput %s", label);
         }
@@ -179,7 +180,7 @@ void XPlane::add_joyinput(const char *label, JoyType type, const AP_JSON::value 
 /*
   handle a setting
  */
-void XPlane::handle_setting(const AP_JSON::value &d)
+void XPlane::handle_setting(const picojson::value &d)
 {
     if (d.contains("debug")) {
         dref_debug = d.get("debug").get<double>();
@@ -204,7 +205,7 @@ bool XPlane::load_dref_map(const char *map_json)
     if (fname == nullptr) {
         return false;
     }
-    AP_JSON::value *obj = AP_JSON::load_json(fname);
+    picojson::value *obj = (picojson::value *)load_json(fname);
     if (obj == nullptr) {
         return false;
     }
@@ -229,8 +230,8 @@ bool XPlane::load_dref_map(const char *map_json)
     
     uint32_t count = 0;
     // obtain a const reference to the map, and print the contents
-    const AP_JSON::value::object& o = obj->get<AP_JSON::value::object>();
-    for (AP_JSON::value::object::const_iterator i = o.begin();
+    const picojson::value::object& o = obj->get<picojson::object>();
+    for (picojson::value::object::const_iterator i = o.begin();
          i != o.end();
          ++i) {
         const char *label = i->first.c_str();

@@ -1,7 +1,3 @@
-#include "AP_RCMapper_config.h"
-
-#if AP_RCMAPPER_ENABLED
-
 #include <AP_HAL/AP_HAL.h>
 #include "AP_RCMapper.h"
 
@@ -79,5 +75,3 @@ RCMapper::RCMapper(void)
 RCMapper *AP::rcmap() {
     return RCMapper::get_singleton();
 }
-
-#endif  // AP_RCMAPPER_ENABLED

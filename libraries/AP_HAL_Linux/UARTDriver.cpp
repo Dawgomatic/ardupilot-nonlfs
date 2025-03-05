@@ -23,6 +23,7 @@
 #include "TCPServerDevice.h"
 #include "UARTDevice.h"
 #include "UDPDevice.h"
+
 #include <GCS_MAVLink/GCS.h>
 #if HAL_GCS_ENABLED
 #include <AP_HAL/utility/packetise.h>
@@ -52,7 +53,7 @@ void UARTDriver::_begin(uint32_t b, uint16_t rxS, uint16_t txS)
 {
     if (!_initialised) {
         if (device_path == nullptr && _console) {
-            _device = NEW_NOTHROW ConsoleDevice();
+            _device = new ConsoleDevice();
         } else {
             if (device_path == nullptr) {
                 return;
@@ -63,7 +64,7 @@ void UARTDriver::_begin(uint32_t b, uint16_t rxS, uint16_t txS)
             if (!_device.get()) {
                 ::fprintf(stderr, "Argument is not valid. Fallback to console.\n"
                           "Launch with --help to see an example.\n");
-                _device = NEW_NOTHROW ConsoleDevice();
+                _device = new ConsoleDevice();
             }
         }
     }
@@ -132,7 +133,7 @@ AP_HAL::OwnPtr<SerialDevice> UARTDriver::_parseDevicePath(const char *arg)
     struct stat st;
 
     if (stat(arg, &st) == 0 && S_ISCHR(st.st_mode)) {
-        return AP_HAL::OwnPtr<SerialDevice>(NEW_NOTHROW UARTDevice(arg));
+        return AP_HAL::OwnPtr<SerialDevice>(new UARTDevice(arg));
     } else if (strncmp(arg, "tcp:", 4) != 0 &&
                strncmp(arg, "udp:", 4) != 0 &&
                strncmp(arg, "udpin:", 6)) {
@@ -184,17 +185,17 @@ AP_HAL::OwnPtr<SerialDevice> UARTDriver::_parseDevicePath(const char *arg)
         _packetise = true;
 #endif
         if (strcmp(protocol, "udp") == 0) {
-            device = NEW_NOTHROW UDPDevice(_ip, _base_port, bcast, false);
+            device = new UDPDevice(_ip, _base_port, bcast, false);
         } else {
             if (bcast) {
                 AP_HAL::panic("Can't combine udpin with bcast");
             }
-            device = NEW_NOTHROW UDPDevice(_ip, _base_port, false, true);
+            device = new UDPDevice(_ip, _base_port, false, true);
 
         }
     } else {
         bool wait = (_flag && strcmp(_flag, "wait") == 0);
-        device = NEW_NOTHROW TCPServerDevice(_ip, _base_port, wait);
+        device = new TCPServerDevice(_ip, _base_port, wait);
     }
 
     free(devstr);
@@ -416,7 +417,6 @@ void UARTDriver::_timer_tick(void)
 }
 
 void UARTDriver::configure_parity(uint8_t v) {
-    UARTDriver::parity = v;
     _device->set_parity(v);
 }
 

@@ -13,10 +13,6 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "AC_Avoidance_config.h"
-
-#if AP_OAPATHPLANNER_ENABLED
-
 #include "AP_OAPathPlanner.h"
 #include <AP_Math/AP_Math.h>
 #include <AP_AHRS/AP_AHRS.h>
@@ -28,11 +24,11 @@
 extern const AP_HAL::HAL &hal;
 
 // parameter defaults
-static constexpr float OA_MARGIN_MAX_DEFAULT = 5;
-static constexpr int16_t OA_OPTIONS_DEFAULT = 1;
+const float OA_MARGIN_MAX_DEFAULT = 5;
+const int16_t OA_OPTIONS_DEFAULT = 1;
 
-static constexpr int16_t OA_UPDATE_MS = 1000;      // path planning updates run at 1hz
-static constexpr int16_t OA_TIMEOUT_MS = 3000;     // results over 3 seconds old are ignored
+const int16_t OA_UPDATE_MS = 1000;      // path planning updates run at 1hz
+const int16_t OA_TIMEOUT_MS = 3000;     // results over 3 seconds old are ignored
 
 const AP_Param::GroupInfo AP_OAPathPlanner::var_info[] = {
 
@@ -92,25 +88,25 @@ void AP_OAPathPlanner::init()
         return;
     case OA_PATHPLAN_BENDYRULER:
         if (_oabendyruler == nullptr) {
-            _oabendyruler = NEW_NOTHROW AP_OABendyRuler();
+            _oabendyruler = new AP_OABendyRuler();
             AP_Param::load_object_from_eeprom(_oabendyruler, AP_OABendyRuler::var_info);
         }
         break;
     case OA_PATHPLAN_DIJKSTRA:
 #if AP_FENCE_ENABLED
         if (_oadijkstra == nullptr) {
-            _oadijkstra = NEW_NOTHROW AP_OADijkstra(_options);
+            _oadijkstra = new AP_OADijkstra(_options);
         }
 #endif
         break;
     case OA_PATHPLAN_DJIKSTRA_BENDYRULER:
 #if AP_FENCE_ENABLED
         if (_oadijkstra == nullptr) {
-            _oadijkstra = NEW_NOTHROW AP_OADijkstra(_options);
+            _oadijkstra = new AP_OADijkstra(_options);
         }
 #endif
         if (_oabendyruler == nullptr) {
-            _oabendyruler = NEW_NOTHROW AP_OABendyRuler();
+            _oabendyruler = new AP_OABendyRuler();
             AP_Param::load_object_from_eeprom(_oabendyruler, AP_OABendyRuler::var_info);
         }
         break;
@@ -436,5 +432,3 @@ AP_OAPathPlanner *ap_oapathplanner()
 }
 
 }
-
-#endif  // AP_OAPATHPLANNER_ENABLED

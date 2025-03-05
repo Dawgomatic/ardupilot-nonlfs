@@ -148,7 +148,7 @@ void AP_MotorsMatrix::output_to_motors()
         case SpoolState::SHUT_DOWN: {
             // no output
             for (i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
-                if (motor_enabled_mask(i)) {
+                if (motor_enabled[i]) {
                     _actuator[i] = 0.0f;
                 }
             }
@@ -686,7 +686,7 @@ bool AP_MotorsMatrix::setup_quad_matrix(motor_frame_type frame_type)
         break;
     }
     case MOTOR_FRAME_TYPE_H: {
-        // H frame set-up - same as X but motors spin in opposite directions
+        // H frame set-up - same as X but motors spin in opposite directiSons
         _frame_type_string = "H";
         static const AP_MotorsMatrix::MotorDef motors[] {
             {   45, AP_MOTORS_MATRIX_YAW_FACTOR_CW,   1 },

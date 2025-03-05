@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include "AP_Mount_Backend_Serial.h"
+#include "AP_Mount_Backend.h"
 
 #if HAL_MOUNT_VIEWPRO_ENABLED
 
@@ -27,15 +27,18 @@
 
 #define AP_MOUNT_VIEWPRO_PACKETLEN_MAX  63  // maximum number of bytes in a packet sent to or received from the gimbal
 
-class AP_Mount_Viewpro : public AP_Mount_Backend_Serial
+class AP_Mount_Viewpro : public AP_Mount_Backend
 {
 
 public:
     // Constructor
-    using AP_Mount_Backend_Serial::AP_Mount_Backend_Serial;
+    using AP_Mount_Backend::AP_Mount_Backend;
 
     /* Do not allow copies */
     CLASS_NO_COPY(AP_Mount_Viewpro);
+
+    // init - performs any required initialisation for this instance
+    void init() override;
 
     // update mount position - should be called periodically
     void update() override;
@@ -369,12 +372,14 @@ private:
     bool send_tracking_command(TrackingCommand cmd, uint8_t value);
 
     // send camera command2 and corresponding parameter values
-    bool send_tracking_command2(TrackingCommand2 cmd, int16_t param1, int16_t param2);
+    bool send_tracking_command2(TrackingCommand2 cmd, uint16_t param1, uint16_t param2);
 
     // send vehicle attitude and position to gimbal
     bool send_m_ahrs();
 
     // internal variables
+    AP_HAL::UARTDriver *_uart;                      // uart connected to gimbal
+    bool _initialised;                              // true once the driver has been initialised
     uint8_t _msg_buff[AP_MOUNT_VIEWPRO_PACKETLEN_MAX];  // buffer holding latest bytes from gimbal
     uint8_t _msg_buff_len;                          // number of bytes held in msg buff
     const uint8_t _msg_buff_data_start = 2;         // data starts at this byte of _msg_buff

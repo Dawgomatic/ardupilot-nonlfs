@@ -38,14 +38,6 @@ typedef uint32_t dmar_uint_t;
 typedef int32_t dmar_int_t;
 #endif
 
-#ifdef AP_RCOUT_USE_32BIT_TIME
-typedef uint32_t rcout_timer_t;
-#define rcout_micros() AP_HAL::micros()
-#else
-typedef uint64_t rcout_timer_t;
-#define rcout_micros() AP_HAL::micros64()
-#endif
-
 #define RCOU_DSHOT_TIMING_DEBUG 0
 
 class ChibiOS::RCOutput : public AP_HAL::RCOutput
@@ -112,12 +104,12 @@ public:
     /*
       timer push (for oneshot min rate)
      */
-    void timer_tick(rcout_timer_t cycle_start_us, rcout_timer_t timeout_period_us);
+    void timer_tick(uint64_t last_run_us);
 
     /*
       LED push
      */
-    void led_timer_tick(rcout_timer_t cycle_start_us, rcout_timer_t timeout_period_us);
+    void led_timer_tick(uint64_t last_run_us);
 
 #if defined(IOMCU_FW) && HAL_DSHOT_ENABLED
     void timer_tick() override;
@@ -363,9 +355,9 @@ private:
         uint32_t bit_width_mul;
         uint32_t rc_frequency;
         bool in_serial_dma;
-        rcout_timer_t last_dmar_send_us;
-        rcout_timer_t dshot_pulse_time_us;
-        rcout_timer_t dshot_pulse_send_time_us;
+        uint64_t last_dmar_send_us;
+        uint64_t dshot_pulse_time_us;
+        uint64_t dshot_pulse_send_time_us;
         virtual_timer_t dma_timeout;
 #if HAL_SERIALLED_ENABLED
         // serial LED support
@@ -414,7 +406,7 @@ private:
 #if RCOU_DSHOT_TIMING_DEBUG
             uint16_t telem_rate[4];
             uint16_t telem_err_rate[4];
-            rcout_timer_t last_print;  // debug
+            uint64_t last_print;  // debug
 #endif
         } bdshot;
 
@@ -507,8 +499,6 @@ private:
     struct pwm_group *serial_group;
     thread_t *serial_thread;
     tprio_t serial_priority;
-    // mask of channels configured for serial output
-    uint32_t serial_chanmask;
 #endif // HAL_SERIAL_ESC_COMM_ENABLED
 
     static bool soft_serial_waiting() {
@@ -574,7 +564,7 @@ private:
     } _bdshot;
 
     // dshot period
-    rcout_timer_t _dshot_period_us = 400;
+    uint32_t _dshot_period_us = 400;
     // dshot rate as a multiple of loop rate or 0 for 1Khz
     uint8_t _dshot_rate;
     // dshot periods since the last push()
@@ -615,8 +605,8 @@ private:
     // mask of active ESCs
     uint32_t _active_escs_mask;
 
-    // last time pulse was triggererd used to prevent overlap
-    rcout_timer_t last_pulse_trigger_us;
+    // min time to trigger next pulse to prevent overlap
+    uint64_t min_pulse_trigger_us;
 
     // mutex for oneshot triggering
     mutex_t trigger_mutex;
@@ -697,20 +687,20 @@ private:
     static const eventmask_t EVT_PWM_SEND  = EVENT_MASK(11);
     static const eventmask_t EVT_PWM_SYNTHETIC_SEND  = EVENT_MASK(13);
 
-    void dshot_send_groups(rcout_timer_t cycle_start_us, rcout_timer_t timeout_us);
-    void dshot_send(pwm_group &group, rcout_timer_t cycle_start_us, rcout_timer_t timeout_us);
+    void dshot_send_groups(uint64_t time_out_us);
+    void dshot_send(pwm_group &group, uint64_t time_out_us);
     bool dshot_send_command(pwm_group &group, uint8_t command, uint8_t chan);
     static void dshot_update_tick(virtual_timer_t*, void* p);
     static void dshot_send_next_group(void* p);
     // release locks on the groups that are pending in reverse order
-    sysinterval_t calc_ticks_remaining(pwm_group &group, rcout_timer_t cycle_start_us, rcout_timer_t timeout_period_us, rcout_timer_t output_period_us);
-    void dshot_collect_dma_locks(rcout_timer_t cycle_start_us, rcout_timer_t timeout_period_us, bool led_thread = false);
+    sysinterval_t calc_ticks_remaining(pwm_group &group, uint64_t time_out_us, uint32_t output_period_us);
+    void dshot_collect_dma_locks(uint64_t last_run_us, bool led_thread = false);
     static void dma_up_irq_callback(void *p, uint32_t flags);
     static void dma_unlock(virtual_timer_t*, void *p);
     void dma_cancel(pwm_group& group);
     bool mode_requires_dma(enum output_mode mode) const;
     bool setup_group_DMA(pwm_group &group, uint32_t bitrate, uint32_t bit_width, bool active_high,
-                         const uint16_t buffer_length, rcout_timer_t pulse_time_us,
+                         const uint16_t buffer_length, uint32_t pulse_time_us,
                          bool at_least_freq);
     void send_pulses_DMAR(pwm_group &group, uint32_t buffer_length);
     void set_group_mode(pwm_group &group);

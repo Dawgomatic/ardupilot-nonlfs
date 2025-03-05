@@ -3,7 +3,6 @@
 #include <AP_HAL/AP_HAL_Boards.h>
 #include <AP_HAL/Semaphores.h>
 #include <AP_Param/AP_Param.h>
-#include <AP_GPS/AP_GPS_config.h>
 #include <AP_BoardConfig/AP_BoardConfig_config.h>
 
 #include "AP_Arming_config.h"
@@ -96,7 +95,6 @@ public:
     // these functions should not be used by Copter which holds the armed state in the motors library
     Required arming_required() const;
     virtual bool arm(AP_Arming::Method method, bool do_arming_checks=true);
-    virtual bool arm_force(AP_Arming::Method method) { return arm(method, false); }
     virtual bool disarm(AP_Arming::Method method, bool do_disarm_checks=true);
     bool is_armed() const;
     bool is_armed_and_safety_off() const;
@@ -155,12 +153,6 @@ public:
     static bool method_is_GCS(Method method) {
         return (method == Method::MAVLINK || method == Method::DDS);
     }
-
-    enum class RequireLocation : uint8_t {
-        NO = 0,
-        YES = 1,
-    };
-
 protected:
 
     // Parameters
@@ -171,7 +163,6 @@ protected:
     AP_Int32                _required_mission_items;
     AP_Int32                _arming_options;
     AP_Int16                magfield_error_threshold;
-    AP_Enum<RequireLocation> require_location;
 
     // internal members
     bool                    armed;
@@ -323,10 +314,6 @@ private:
     bool report_immediately; // set to true when check goes from true to false, to trigger immediate report
 
     void update_arm_gpio();
-
-#if !AP_GPS_BLENDED_ENABLED
-    bool blending_auto_switch_checks(bool report);
-#endif
 
 #if AP_ARMING_CRASHDUMP_ACK_ENABLED
     struct CrashDump {

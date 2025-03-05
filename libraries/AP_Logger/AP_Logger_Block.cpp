@@ -132,6 +132,11 @@ bool AP_Logger_Block::_WritePrioritisedBlock(const void *pBuffer, uint16_t size,
         return false;
     }
 
+    if (!WriteBlockCheckStartupMessages()) {
+        _dropped++;
+        return false;
+    }
+
     WITH_SEMAPHORE(write_sem);
 
     const uint32_t space = writebuf.space();
@@ -302,7 +307,7 @@ void AP_Logger_Block::periodic_1Hz()
          _front._params.disarm_ratemax > 0 ||
          _front._log_pause)) {
         // setup rate limiting if log rate max > 0Hz or log pause of streaming entries is requested
-        rate_limiter = NEW_NOTHROW AP_Logger_RateLimiter(_front, _front._params.blk_ratemax, _front._params.disarm_ratemax);
+        rate_limiter = new AP_Logger_RateLimiter(_front, _front._params.blk_ratemax, _front._params.disarm_ratemax);
     }
     
     if (!io_thread_alive()) {
@@ -541,7 +546,7 @@ void AP_Logger_Block::stop_logging_async(void)
 void AP_Logger_Block::start_new_log(void)
 {
     if (erase_started) {
-        // currently erasing
+        // already erasing
         return;
     }
 

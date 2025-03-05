@@ -9,7 +9,7 @@ ifeq ($(USE_OPT),)
 endif
 
 ifeq ($(ENABLE_DEBUG_SYMBOLS), yes)
-  USE_OPT += -g3
+  USE_OPT += -g
 endif
 
 # C specific options here (added to USE_OPT).

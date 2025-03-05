@@ -21,7 +21,11 @@
  */
 #pragma once
 
-#include "AP_Camera_config.h"
+#include <AP_HAL/AP_HAL_Boards.h>
+
+#ifndef HAL_RUNCAM_ENABLED
+#define HAL_RUNCAM_ENABLED 1
+#endif
 
 #if HAL_RUNCAM_ENABLED
 

@@ -1,9 +1,5 @@
 #pragma once
 
-#include "AC_Avoidance_config.h"
-
-#if AP_OAPATHPLANNER_BENDYRULER_ENABLED
-
 #include <AP_Common/AP_Common.h>
 #include <AP_Common/Location.h>
 #include <AP_Math/AP_Math.h>
@@ -92,5 +88,3 @@ private:
     float _bearing_prev;            // stored bearing in degrees 
     Location _destination_prev;     // previous destination, to check if there has been a change in destination
 };
-
-#endif  // AP_OAPATHPLANNER_BENDYRULER_ENABLED

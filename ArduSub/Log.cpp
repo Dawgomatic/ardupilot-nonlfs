@@ -28,13 +28,7 @@ void Sub::Log_Write_Control_Tuning()
     // get terrain altitude
     float terr_alt = 0.0f;
 #if AP_TERRAIN_AVAILABLE
-    if (terrain.enabled()) {
-        terrain.height_above_terrain(terr_alt, true);
-    } else {
-        terr_alt = rangefinder_state.rangefinder_terrain_offset_cm * 0.01f;
-    }
-#else
-    terr_alt = rangefinder_state.rangefinder_terrain_offset_cm * 0.01f;
+    terrain.height_above_terrain(terr_alt, true);
 #endif
 
     struct log_Control_Tuning pkt = {
@@ -47,7 +41,7 @@ void Sub::Log_Write_Control_Tuning()
         desired_alt         : pos_control.get_pos_target_z_cm() / 100.0f,
         inav_alt            : inertial_nav.get_position_z_up_cm() * 0.01f,
         baro_alt            : barometer.get_altitude(),
-        desired_rangefinder_alt   : (int16_t)mode_surftrak.get_rangefinder_target_cm(),
+        desired_rangefinder_alt   : (int16_t)target_rangefinder_alt,
         rangefinder_alt           : rangefinder_state.alt_cm,
         terr_alt            : terr_alt,
         target_climb_rate   : (int16_t)pos_control.get_vel_target_z_cms(),
@@ -59,7 +53,9 @@ void Sub::Log_Write_Control_Tuning()
 // Write an attitude packet
 void Sub::Log_Write_Attitude()
 {
-    ahrs.Write_Attitude(attitude_control.get_att_target_euler_rad() * RAD_TO_DEG);
+    Vector3f targets = attitude_control.get_att_target_euler_cd();
+    targets.z = wrap_360_cd(targets.z);
+    ahrs.Write_Attitude(targets);
 
     AP::ahrs().Log_Write();
 }
@@ -279,11 +275,6 @@ const struct LogStructure Sub::log_structure[] = {
       "GUIP",  "QBffffff",    "TimeUS,Type,pX,pY,pZ,vX,vY,vZ", "s-mmmnnn", "F-000000" },
 };
 
-uint8_t Sub::get_num_log_structures() const
-{
-    return ARRAY_SIZE(log_structure);
-}
-
 void Sub::Log_Write_Vehicle_Startup_Messages()
 {
     // only 200(?) bytes are guaranteed by AP_Logger
@@ -292,5 +283,10 @@ void Sub::Log_Write_Vehicle_Startup_Messages()
     gps.Write_AP_Logger_Log_Startup_messages();
 }
 
+
+void Sub::log_init()
+{
+    logger.Init(log_structure, ARRAY_SIZE(log_structure));
+}
 
 #endif // HAL_LOGGING_ENABLED

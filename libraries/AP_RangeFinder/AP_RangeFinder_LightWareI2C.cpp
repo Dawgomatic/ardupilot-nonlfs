@@ -81,7 +81,7 @@ AP_RangeFinder_Backend *AP_RangeFinder_LightWareI2C::detect(RangeFinder::RangeFi
     }
 
     AP_RangeFinder_LightWareI2C *sensor
-        = NEW_NOTHROW AP_RangeFinder_LightWareI2C(_state, _params, std::move(dev));
+        = new AP_RangeFinder_LightWareI2C(_state, _params, std::move(dev));
 
     if (!sensor) {
         return nullptr;

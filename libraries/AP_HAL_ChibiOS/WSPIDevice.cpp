@@ -212,7 +212,7 @@ WSPIDeviceManager::get_device(const char *name)
     }
     if (busp == nullptr) {
         // create a new one
-        busp = NEW_NOTHROW WSPIBus(desc.bus);
+        busp = new WSPIBus(desc.bus);
         if (busp == nullptr) {
             return nullptr;
         }
@@ -222,7 +222,7 @@ WSPIDeviceManager::get_device(const char *name)
         buses = busp;
     }
 
-    return AP_HAL::OwnPtr<AP_HAL::WSPIDevice>(NEW_NOTHROW WSPIDevice(*busp, desc));
+    return AP_HAL::OwnPtr<AP_HAL::WSPIDevice>(new WSPIDevice(*busp, desc));
 }
 
 #endif // #if HAL_USE_WSPI == TRUE && defined(HAL_QPI_DEVICE_LIST)

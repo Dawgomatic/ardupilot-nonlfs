@@ -2,7 +2,6 @@
 
 #include <GCS_MAVLink/GCS.h>
 #include <AP_Winch/AP_Winch_config.h>
-#include "defines.h"
 
 #ifndef AC_MAVLINK_SOLO_BUTTON_COMMAND_HANDLING_ENABLED
 #define AC_MAVLINK_SOLO_BUTTON_COMMAND_HANDLING_ENABLED 1
@@ -46,12 +45,10 @@ protected:
     void handle_mount_message(const mavlink_message_t &msg) override;
 #endif
 
-    void handle_message_set_attitude_target(const mavlink_message_t &msg);
-    void handle_message_set_position_target_global_int(const mavlink_message_t &msg);
-    void handle_message_set_position_target_local_ned(const mavlink_message_t &msg);
-
     void handle_landing_target(const mavlink_landing_target_t &packet, uint32_t timestamp_ms) override;
 
+    bool set_home_to_current_location(bool lock) override WARN_IF_UNUSED;
+    bool set_home(const Location& loc, bool lock) override WARN_IF_UNUSED;
     void send_nav_controller_output() const override;
     uint64_t capabilities() const override;
 
@@ -59,10 +56,6 @@ protected:
     virtual MAV_LANDED_STATE landed_state() const override;
 
     void handle_manual_control_axes(const mavlink_manual_control_t &packet, const uint32_t tnow) override;
-
-#if HAL_LOGGING_ENABLED
-    uint32_t log_radio_bit() const override { return MASK_LOG_PM; }
-#endif
 
 private:
 

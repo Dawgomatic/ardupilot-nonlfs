@@ -36,18 +36,18 @@ void Copter::crash_check()
     }
 
     // exit immediately if in force flying
-    if (get_force_flying() && !flightmode->is_landing()) {
+    if (force_flying && !flightmode->is_landing()) {
         crash_counter = 0;
         return;
     }
 
     // return immediately if we are not in an angle stabilize flight mode or we are flipping
-    if (!flightmode->crash_check_enabled()) {
+    if (flightmode->mode_number() == Mode::Number::ACRO || flightmode->mode_number() == Mode::Number::FLIP) {
         crash_counter = 0;
         return;
     }
 
-#if MODE_AUTOROTATE_ENABLED
+#if MODE_AUTOROTATE_ENABLED == ENABLED
     //return immediately if in autorotation mode
     if (flightmode->mode_number() == Mode::Number::AUTOROTATE) {
         crash_counter = 0;
@@ -102,7 +102,7 @@ void Copter::thrust_loss_check()
     static uint16_t thrust_loss_counter;  // number of iterations vehicle may have been crashed
 
     // no-op if suppressed by flight options param
-    if (copter.option_is_enabled(FlightOption::DISABLE_THRUST_LOSS_CHECK)) {
+    if ((copter.g2.flight_options & uint32_t(FlightOptions::DISABLE_THRUST_LOSS_CHECK)) != 0) {
         return;
     }
 
@@ -171,8 +171,8 @@ void Copter::thrust_loss_check()
         // the motors library disables this when it is no longer needed to achieve the commanded output
 
 #if AP_GRIPPER_ENABLED
-        if (copter.option_is_enabled(FlightOption::RELEASE_GRIPPER_ON_THRUST_LOSS)) {
-            gripper.release();
+        if ((copter.g2.flight_options & uint32_t(FlightOptions::RELEASE_GRIPPER_ON_THRUST_LOSS)) != 0) {
+            copter.g2.gripper.release();
         }
 #endif
     }
@@ -182,7 +182,7 @@ void Copter::thrust_loss_check()
 void Copter::yaw_imbalance_check()
 {
     // no-op if suppressed by flight options param
-    if (copter.option_is_enabled(FlightOption::DISABLE_YAW_IMBALANCE_WARNING)) {
+    if ((copter.g2.flight_options & uint32_t(FlightOptions::DISABLE_YAW_IMBALANCE_WARNING)) != 0) {
         return;
     }
 
@@ -229,7 +229,7 @@ void Copter::yaw_imbalance_check()
     }
 }
 
-#if HAL_PARACHUTE_ENABLED
+#if PARACHUTE == ENABLED
 
 // Code to detect a crash main ArduCopter code
 #define PARACHUTE_CHECK_TRIGGER_SEC         1       // 1 second of loss of control triggers the parachute
@@ -269,11 +269,12 @@ void Copter::parachute_check()
     }
 
     if (parachute.release_initiated()) {
+        copter.arming.disarm(AP_Arming::Method::PARACHUTE_RELEASE);
         return;
     }
 
     // return immediately if we are not in an angle stabilize flight mode or we are flipping
-    if (!flightmode->crash_check_enabled()) {
+    if (flightmode->mode_number() == Mode::Number::ACRO || flightmode->mode_number() == Mode::Number::FLIP) {
         control_loss_count = 0;
         return;
     }
@@ -330,6 +331,9 @@ void Copter::parachute_check()
 // parachute_release - trigger the release of the parachute, disarm the motors and notify the user
 void Copter::parachute_release()
 {
+    // disarm motors
+    arming.disarm(AP_Arming::Method::PARACHUTE_RELEASE);
+
     // release parachute
     parachute.release();
 
@@ -369,4 +373,4 @@ void Copter::parachute_manual_release()
     parachute_release();
 }
 
-#endif  // HAL_PARACHUTE_ENABLED
+#endif // PARACHUTE == ENABLED

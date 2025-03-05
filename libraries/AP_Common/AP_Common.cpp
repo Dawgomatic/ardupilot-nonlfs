@@ -93,16 +93,14 @@ size_t strncpy_noterm(char *dest, const char *src, size_t n)
  * return the numeric value of an ascii hex character
  * 
  * @param[in] a Hexadecimal character 
- * @return  Returns a binary value.  If 'a' is not a valid hex character 255 (AKA -1) is returned
+ * @return  Returns a binary value
  */
-uint8_t char_to_hex(char a)
+int16_t char_to_hex(char a)
 {
-    if (a >= 'A' && a <= 'F') {
+    if (a >= 'A' && a <= 'F')
         return a - 'A' + 10;
-    } else if (a >= 'a' && a <= 'f') {
+    else if (a >= 'a' && a <= 'f')
         return a - 'a' + 10;
-    } else if (a >= '0' && a <= '9') {
+    else
         return a - '0';
-    }
-    return 255;
 }

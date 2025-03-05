@@ -4,7 +4,7 @@
 
 #include "Rover.h"
 
-#if AP_ROVER_ADVANCED_FAILSAFE_ENABLED
+#if ADVANCED_FAILSAFE == ENABLED
 
 /*
   Setup radio_out values for all channels to termination values
@@ -32,6 +32,6 @@ AP_AdvancedFailsafe::control_mode AP_AdvancedFailsafe_Rover::afs_mode(void)
 //to force entering auto mode when datalink loss 
  void AP_AdvancedFailsafe_Rover::set_mode_auto(void)
  {
-    rover.set_mode(rover.mode_auto,ModeReason::GCS_FAILSAFE);
+    over.set_mode(rover.mode_auto,ModeReason::GCS_FAILSAFE);
  }
-#endif  // AP_ROVER_ADVANCED_FAILSAFE_ENABLED
+#endif  // ADVANCED_FAILSAFE

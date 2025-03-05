@@ -19,7 +19,6 @@
 #include <AP_InternalError/AP_InternalError.h>
 #include <AP_Logger/AP_Logger.h>
 #include <AP_Arming/AP_Arming.h>
-#include <AP_BLHeli/AP_BLHeli.h>
 #include <ch.h>
 
 extern const AP_HAL::HAL &hal;
@@ -119,13 +118,11 @@ void AP_IOMCU::thread_main(void)
     uart.set_unbuffered_writes(true);
 
 #if HAL_WITH_IO_MCU_BIDIR_DSHOT
-    uint16_t erpm_period_ms = 10; // default 100Hz
-#if HAVE_AP_BLHELI_SUPPORT
     AP_BLHeli* blh = AP_BLHeli::get_singleton();
+    uint16_t erpm_period_ms = 10; // default 100Hz
     if (blh && blh->get_telemetry_rate() > 0) {
         erpm_period_ms = constrain_int16(1000 / blh->get_telemetry_rate(), 1, 1000);
     }
-#endif
 #endif
     trigger_event(IOEVENT_INIT);
 
@@ -156,9 +153,10 @@ void AP_IOMCU::thread_main(void)
 
             DEV_PRINTF("IOMCU: 0x%lx\n", config.mcuid);
 
-            // set IO_ARM_OK and clear FMU_ARMED
-            if (!modify_register(PAGE_SETUP, PAGE_REG_SETUP_ARMING, P_SETUP_ARMING_FMU_ARMED,
+            // set IO_ARM_OK and FMU_ARMED
+            if (!modify_register(PAGE_SETUP, PAGE_REG_SETUP_ARMING, 0,
                                  P_SETUP_ARMING_IO_ARM_OK |
+                                 P_SETUP_ARMING_FMU_ARMED |
                                  P_SETUP_ARMING_RC_HANDLING_DISABLED)) {
                 event_failed(mask);
                 continue;
@@ -337,8 +335,7 @@ void AP_IOMCU::thread_main(void)
             last_telem_read_ms = AP_HAL::millis();
         }
 #endif
-        // update options at the same rate that the iomcu updates the state
-        if (now - last_safety_option_check_ms > 100) {
+        if (now - last_safety_option_check_ms > 1000) {
             update_safety_options();
             last_safety_option_check_ms = now;
         }
@@ -412,12 +409,10 @@ void AP_IOMCU::read_erpm()
         return;
     }
     uint8_t motor_poles = 14;
-#if HAVE_AP_BLHELI_SUPPORT
     AP_BLHeli* blh = AP_BLHeli::get_singleton();
     if (blh) {
         motor_poles = blh->get_motor_poles();
     }
-#endif
     for (uint8_t i = 0; i < IOMCU_MAX_TELEM_CHANNELS/4; i++) {
         for (uint8_t j = 0; j < 4; j++) {
             const uint8_t esc_id = (i * 4 + j);
@@ -453,11 +448,7 @@ void AP_IOMCU::read_telem()
         TelemetryData t {
             .temperature_cdeg = int16_t(telem->temperature_cdeg[i]),
             .voltage = float(telem->voltage_cvolts[i]) * 0.01,
-            .current = float(telem->current_camps[i]) * 0.01,
-#if AP_EXTENDED_DSHOT_TELEM_V2_ENABLED
-            .edt2_status = telem->edt2_status[i],
-            .edt2_stress = telem->edt2_stress[i],
-#endif
+            .current = float(telem->current_camps[i]) * 0.01
         };
         update_telem_data(esc_group * 4 + i, t, telem->types[i]);
     }
@@ -990,27 +981,10 @@ void AP_IOMCU::set_bidir_dshot_mask(uint16_t mask)
     trigger_event(IOEVENT_SET_OUTPUT_MODE);
 }
 
-// set reversible mask
-void AP_IOMCU::set_reversible_mask(uint16_t mask)
-{
-    mode_out.reversible_mask = mask;
-    trigger_event(IOEVENT_SET_OUTPUT_MODE);
-}
-
 AP_HAL::RCOutput::output_mode AP_IOMCU::get_output_mode(uint8_t& mask) const
 {
     mask = reg_status.rcout_mask;
     return AP_HAL::RCOutput::output_mode(reg_status.rcout_mode);
-}
-
-uint32_t AP_IOMCU::get_disabled_channels(uint32_t digital_mask) const
-{
-    uint32_t dig_out = reg_status.rcout_mask & (digital_mask & 0xFF);
-    if (dig_out > 0
-        && AP_HAL::RCOutput::is_dshot_protocol(AP_HAL::RCOutput::output_mode(reg_status.rcout_mode))) {
-        return ~dig_out & 0xFF;
-    }
-    return 0;
 }
 
 // setup channels
@@ -1039,23 +1013,17 @@ void AP_IOMCU::update_safety_options(void)
     }
     uint16_t desired_options = 0;
     uint16_t options = boardconfig->get_safety_button_options();
-    bool armed = hal.util->get_soft_armed();
     if (!(options & AP_BoardConfig::BOARD_SAFETY_OPTION_BUTTON_ACTIVE_SAFETY_OFF)) {
         desired_options |= P_SETUP_ARMING_SAFETY_DISABLE_OFF;
     }
     if (!(options & AP_BoardConfig::BOARD_SAFETY_OPTION_BUTTON_ACTIVE_SAFETY_ON)) {
         desired_options |= P_SETUP_ARMING_SAFETY_DISABLE_ON;
     }
-    if (!(options & AP_BoardConfig::BOARD_SAFETY_OPTION_BUTTON_ACTIVE_ARMED) && armed) {
+    if (!(options & AP_BoardConfig::BOARD_SAFETY_OPTION_BUTTON_ACTIVE_ARMED) && AP::arming().is_armed()) {
         desired_options |= (P_SETUP_ARMING_SAFETY_DISABLE_ON | P_SETUP_ARMING_SAFETY_DISABLE_OFF);
     }
-    // update armed state
-    if (armed) {
-        desired_options |= P_SETUP_ARMING_FMU_ARMED;
-    }
-
     if (last_safety_options != desired_options) {
-        uint16_t mask = (P_SETUP_ARMING_SAFETY_DISABLE_ON | P_SETUP_ARMING_SAFETY_DISABLE_OFF | P_SETUP_ARMING_FMU_ARMED);
+        uint16_t mask = (P_SETUP_ARMING_SAFETY_DISABLE_ON | P_SETUP_ARMING_SAFETY_DISABLE_OFF);
         uint32_t bits_to_set = desired_options & mask;
         uint32_t bits_to_clear = (~desired_options) & mask;
         if (modify_register(PAGE_SETUP, PAGE_REG_SETUP_ARMING, bits_to_clear, bits_to_set)) {

@@ -21,7 +21,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <sys/time.h>
 
 extern const AP_HAL::HAL& hal;
 

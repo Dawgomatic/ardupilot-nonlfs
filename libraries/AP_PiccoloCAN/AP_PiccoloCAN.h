@@ -56,6 +56,9 @@ public:
     // called from SRV_Channels
     void update();
 
+    // send ESC telemetry messages over MAVLink
+    void send_esc_telemetry_mavlink(uint8_t mav_chan);
+
     // return true if a particular servo is 'active' on the Piccolo interface
     bool is_servo_channel_active(uint8_t chan);
 
@@ -63,10 +66,10 @@ public:
     bool is_esc_channel_active(uint8_t chan);
 
     // return true if a particular servo has been detected on the CAN interface
-    bool is_servo_present(uint8_t chan, uint32_t timeout_us = 2000000);
+    bool is_servo_present(uint8_t chan, uint64_t timeout_ms = 2000);
 
     // return true if a particular ESC has been detected on the CAN interface
-    bool is_esc_present(uint8_t chan, uint32_t timeout_us = 2000000);
+    bool is_esc_present(uint8_t chan, uint64_t timeout_ms = 2000);
 
     // return true if a particular servo is enabled
     bool is_servo_enabled(uint8_t chan);
@@ -83,10 +86,10 @@ private:
     void loop();
 
     // write frame on CAN bus, returns true on success
-    bool write_frame(AP_HAL::CANFrame &out_frame, uint32_t timeout_us);
+    bool write_frame(AP_HAL::CANFrame &out_frame, uint64_t timeout);
 
     // read frame on CAN bus, returns true on succses
-    bool read_frame(AP_HAL::CANFrame &recv_frame, uint32_t timeout_us);
+    bool read_frame(AP_HAL::CANFrame &recv_frame, uint64_t timeout);
 
     // send ESC commands over CAN
     void send_esc_messages(void);
@@ -122,14 +125,14 @@ private:
     } _ecu_info;
 
     // Piccolo CAN parameters
-    AP_Int32 _esc_bm;       //!< ESC selection bitmask
-    AP_Int16 _esc_hz;       //!< ESC update rate (Hz)
+    AP_Int32 _esc_bm;       //! ESC selection bitmask
+    AP_Int16 _esc_hz;       //! ESC update rate (Hz)
 
-    AP_Int32 _srv_bm;       //!< Servo selection bitmask
-    AP_Int16 _srv_hz;       //!< Servo update rate (Hz)
+    AP_Int32 _srv_bm;       //! Servo selection bitmask
+    AP_Int16 _srv_hz;       //! Servo update rate (Hz)
 
-    AP_Int16 _ecu_id;       //!< ECU Node ID
-    AP_Int16 _ecu_hz;       //!< ECU update rate (Hz)
+    AP_Int16 _ecu_id;        //! ECU Node ID
+    AP_Int16 _ecu_hz;       //! ECU update rate (Hz)
 
     HAL_Semaphore _telem_sem;
 };

@@ -4,7 +4,7 @@
 
 #include "Copter.h"
 
-#if AP_COPTER_ADVANCED_FAILSAFE_ENABLED
+#if ADVANCED_FAILSAFE == ENABLED
 
 /*
   setup radio_out values for all channels to termination values
@@ -55,7 +55,17 @@ void AP_AdvancedFailsafe_Copter::setup_IO_failsafe(void)
  */
 AP_AdvancedFailsafe::control_mode AP_AdvancedFailsafe_Copter::afs_mode(void)
 {
-    return copter.flightmode->afs_mode();
+    switch (copter.flightmode->mode_number()) {
+    case Mode::Number::AUTO:
+    case Mode::Number::AUTO_RTL:
+    case Mode::Number::GUIDED:
+    case Mode::Number::RTL:
+    case Mode::Number::LAND:
+        return AP_AdvancedFailsafe::AFS_AUTO;
+    default:
+        break;
+    }
+    return AP_AdvancedFailsafe::AFS_STABILIZED;
 }
 
 //to force entering auto mode when datalink loss 
@@ -63,4 +73,4 @@ AP_AdvancedFailsafe::control_mode AP_AdvancedFailsafe_Copter::afs_mode(void)
  {
     copter.set_mode(Mode::Number::AUTO,ModeReason::GCS_FAILSAFE);
  }
-#endif // AP_COPTER_ADVANCED_FAILSAFE_ENABLED
+#endif // ADVANCED_FAILSAFE

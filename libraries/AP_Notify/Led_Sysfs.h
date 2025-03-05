@@ -16,10 +16,9 @@
 */
 #pragma once
 
-#include "AP_Notify_config.h"
+#include <AP_HAL/AP_HAL_Boards.h>
 
-#if AP_NOTIFY_SYSFS_LED_ENABLED
-
+#if CONFIG_HAL_BOARD == HAL_BOARD_LINUX
 #include <AP_HAL_Linux/Led_Sysfs.h>
 
 #include "RGBLed.h"
@@ -40,4 +39,4 @@ private:
     Linux::Led_Sysfs green_led;
     Linux::Led_Sysfs blue_led;
 };
-#endif  // AP_NOTIFY_SYSFS_LED_ENABLED
+#endif

@@ -7,6 +7,7 @@
 #include <AP_RTC/AP_RTC.h>
 #include <GCS_MAVLink/GCS.h>
 #include <GCS_MAVLink/include/mavlink/v2.0/checksum.h>
+#include <AP_SerialManager/AP_SerialManager.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -26,6 +27,19 @@ extern const AP_HAL::HAL& hal;
 #define debug(fmt, args ...) do { if (AP_MOUNT_VIEWPRO_DEBUG) { GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Viewpro: " fmt, ## args); } } while (0)
 
 const char* AP_Mount_Viewpro::send_text_prefix = "Viewpro:";
+
+// init - performs any required initialisation for this instance
+void AP_Mount_Viewpro::init()
+{
+    const AP_SerialManager& serial_manager = AP::serialmanager();
+
+    _uart = serial_manager.find_serial(AP_SerialManager::SerialProtocol_Gimbal, 0);
+    if (_uart != nullptr) {
+        _initialised = true;
+    }
+
+    AP_Mount_Backend::init();
+}
 
 // update mount position - should be called periodically
 void AP_Mount_Viewpro::update()
@@ -299,14 +313,14 @@ void AP_Mount_Viewpro::process_packet()
             const uint8_t patch_ver = atoi((const char*)fw_patch_str) & 0xFF;
             _firmware_version = (patch_ver << 16) | (minor_ver << 8) | major_ver;
             _got_firmware_version = true;
-            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "%s fw:%u.%u.%u", send_text_prefix, (unsigned)major_ver, (unsigned)minor_ver, (unsigned)patch_ver);
+            gcs().send_text(MAV_SEVERITY_INFO, "%s fw:%u.%u.%u", send_text_prefix, (unsigned)major_ver, (unsigned)minor_ver, (unsigned)patch_ver);
             break;
         }
         case CommConfigCmd::QUERY_MODEL:
             // gimbal model, length is 10 bytes
             strncpy((char *)_model_name, (const char *)&_msg_buff[_msg_buff_data_start+1], sizeof(_model_name)-1);
             _got_model_name = true;
-            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "%s %s", send_text_prefix, (const char*)_model_name);
+            gcs().send_text(MAV_SEVERITY_INFO, "%s %s", send_text_prefix, (const char*)_model_name);
             break;
         default:
             // unsupported control command
@@ -326,16 +340,16 @@ void AP_Mount_Viewpro::process_packet()
             _last_tracking_status = tracking_status;
             switch (tracking_status) {
             case TrackingStatus::STOPPED:
-                GCS_SEND_TEXT(MAV_SEVERITY_INFO, "%s tracking OFF", send_text_prefix);
+                gcs().send_text(MAV_SEVERITY_INFO, "%s tracking OFF", send_text_prefix);
                 break;
             case TrackingStatus::SEARCHING:
-                GCS_SEND_TEXT(MAV_SEVERITY_INFO, "%s tracking searching", send_text_prefix);
+                gcs().send_text(MAV_SEVERITY_INFO, "%s tracking searching", send_text_prefix);
                 break;
             case TrackingStatus::TRACKING:
-                GCS_SEND_TEXT(MAV_SEVERITY_INFO, "%s tracking ON", send_text_prefix);
+                gcs().send_text(MAV_SEVERITY_INFO, "%s tracking ON", send_text_prefix);
                 break;
             case TrackingStatus::LOST:
-                GCS_SEND_TEXT(MAV_SEVERITY_INFO, "%s tracking Lost", send_text_prefix);
+                gcs().send_text(MAV_SEVERITY_INFO, "%s tracking Lost", send_text_prefix);
                 break;
             }
         }
@@ -354,7 +368,7 @@ void AP_Mount_Viewpro::process_packet()
         const bool recording = (recording_status == RecordingStatus::RECORDING);
         if (recording != _recording) {
             _recording = recording;
-            GCS_SEND_TEXT(MAV_SEVERITY_INFO,  "%s recording %s", send_text_prefix, _recording ? "ON" : "OFF");
+            gcs().send_text(MAV_SEVERITY_INFO,  "%s recording %s", send_text_prefix, _recording ? "ON" : "OFF");
         }
 
         // get optical zoom times
@@ -632,7 +646,7 @@ bool AP_Mount_Viewpro::send_tracking_command(TrackingCommand cmd, uint8_t value)
 }
 
 // send camera command2 and corresponding parameter values
-bool AP_Mount_Viewpro::send_tracking_command2(TrackingCommand2 cmd, int16_t param1, int16_t param2)
+bool AP_Mount_Viewpro::send_tracking_command2(TrackingCommand2 cmd, uint16_t param1, uint16_t param2)
 {
     // fill in packet
     const E2Packet e2_packet {
@@ -816,13 +830,13 @@ bool AP_Mount_Viewpro::set_tracking(TrackingType tracking_type, const Vector2f& 
         break;
     case TrackingType::TRK_POINT: {
         return (send_tracking_command(TrackingCommand::START, 0) &&
-                send_tracking_command2(TrackingCommand2::SET_POINT, (p1.x - 0.5) * 2.0 * 960, (p1.y - 0.5) * 2.0 * 540));
+                send_tracking_command2(TrackingCommand2::SET_POINT, (p1.x - 0.5) * 960, (p1.y - 0.5) * 540));
         break;
     }
     case TrackingType::TRK_RECTANGLE:
         return (send_tracking_command(TrackingCommand::START, 0) &&
-                send_tracking_command2(TrackingCommand2::SET_RECT_TOPLEFT, (p1.x - 0.5) * 2.0 * 960, (p1.y - 0.5) * 2.0 * 540) &&
-                send_tracking_command2(TrackingCommand2::SET_RECT_BOTTOMRIGHT, (p2.x - 0.5) * 2.0 * 960, (p2.y - 0.5) * 2.0 * 540));
+                send_tracking_command2(TrackingCommand2::SET_RECT_TOPLEFT, (p1.x - 0.5) * 960, (p1.y - 0.5) * 540) &&
+                send_tracking_command2(TrackingCommand2::SET_RECT_BOTTOMRIGHT, (p2.x - 0.5) * 960, (p2.y - 0.5) * 540));
         break;
     }
 
@@ -920,8 +934,8 @@ void AP_Mount_Viewpro::send_camera_information(mavlink_channel_t chan) const
         vendor_name,            // vendor_name uint8_t[32]
         _model_name,            // model_name uint8_t[32]
         _firmware_version,      // firmware version uint32_t
-        NaNf,                   // sensor_size_h float (mm)
-        NaNf,                   // sensor_size_v float (mm)
+        0,                      // focal_length float (mm)
+        0,                      // sensor_size_h float (mm)
         0,                      // sensor_size_v float (mm)
         0,                      // resolution_h uint16_t (pix)
         0,                      // resolution_v uint16_t (pix)
@@ -940,6 +954,8 @@ void AP_Mount_Viewpro::send_camera_settings(mavlink_channel_t chan) const
         return;
     }
 
+    const float NaN = nanf("0x4152");
+
     // convert zoom times (e.g. 1x ~ 20x) to target zoom level (e.g. 0 to 100)
     const float zoom_level = linear_interpolate(0, 100, _zoom_times, 1, AP_MOUNT_VIEWPRO_ZOOM_MAX);
 
@@ -949,7 +965,7 @@ void AP_Mount_Viewpro::send_camera_settings(mavlink_channel_t chan) const
         AP_HAL::millis(),   // time_boot_ms
         _recording ? CAMERA_MODE_VIDEO : CAMERA_MODE_IMAGE, // camera mode (0:image, 1:video, 2:image survey)
         zoom_level,         // zoomLevel float, percentage from 0 to 100, NaN if unknown
-        NaNf);              // focusLevel float, percentage from 0 to 100, NaN if unknown
+        NaN);               // focusLevel float, percentage from 0 to 100, NaN if unknown
 }
 
 // get rangefinder distance.  Returns true on success

@@ -2,8 +2,6 @@
 
 #include <AP_HAL/AP_HAL.h>
 
-#include <signal.h>
-
 class HAL_Linux : public AP_HAL::HAL {
 public:
     HAL_Linux();
@@ -14,7 +12,7 @@ public:
     static void exit_signal_handler(int);
 
 protected:
-    volatile sig_atomic_t _should_exit = false;
+    bool _should_exit = false;
 };
 
 #if HAL_NUM_CAN_IFACES

@@ -65,7 +65,7 @@ public:
 
     static AP_DAL *get_singleton() {
         if (!_singleton) {
-            _singleton = NEW_NOTHROW AP_DAL();
+            _singleton = new AP_DAL();
         }
         return _singleton;
     }
@@ -121,23 +121,19 @@ public:
     int snprintf(char* str, size_t size, const char *format, ...) const;
 
     // copied in AP_HAL/Util.h
-    enum class MemoryType : uint8_t {
-        DMA_SAFE = 0,
-        FAST     = 1,
+    enum Memory_Type {
+        MEM_DMA_SAFE,
+        MEM_FAST
     };
-    void *malloc_type(size_t size, MemoryType mem_type) const;
-    void free_type(void *ptr, size_t size, MemoryType memtype) const;
+    void *malloc_type(size_t size, enum Memory_Type mem_type) const;
 
     AP_DAL_InertialSensor &ins() { return _ins; }
     AP_DAL_Baro &baro() { return _baro; }
     AP_DAL_GPS &gps() { return _gps; }
 
-#if AP_RANGEFINDER_ENABLED
     AP_DAL_RangeFinder *rangefinder() {
         return _rangefinder;
     }
-#endif
-
     AP_DAL_Airspeed *airspeed() {
         return _airspeed;
     }
@@ -246,13 +242,13 @@ public:
 
     void handle_message(const log_RASH &msg) {
         if (_airspeed == nullptr) {
-            _airspeed = NEW_NOTHROW AP_DAL_Airspeed;
+            _airspeed = new AP_DAL_Airspeed;
         }
         _airspeed->handle_message(msg);
     }
     void handle_message(const log_RASI &msg) {
         if (_airspeed == nullptr) {
-            _airspeed = NEW_NOTHROW AP_DAL_Airspeed;
+            _airspeed = new AP_DAL_Airspeed;
         }
         _airspeed->handle_message(msg);
     }
@@ -265,20 +261,16 @@ public:
     }
 
     void handle_message(const log_RRNH &msg) {
-#if AP_RANGEFINDER_ENABLED
         if (_rangefinder == nullptr) {
-            _rangefinder = NEW_NOTHROW AP_DAL_RangeFinder;
+            _rangefinder = new AP_DAL_RangeFinder;
         }
         _rangefinder->handle_message(msg);
-#endif
     }
     void handle_message(const log_RRNI &msg) {
-#if AP_RANGEFINDER_ENABLED
         if (_rangefinder == nullptr) {
-            _rangefinder = NEW_NOTHROW AP_DAL_RangeFinder;
+            _rangefinder = new AP_DAL_RangeFinder;
         }
         _rangefinder->handle_message(msg);
-#endif
     }
 
     void handle_message(const log_RGPH &msg) {
@@ -301,7 +293,7 @@ public:
     void handle_message(const log_RBCH &msg) {
 #if AP_BEACON_ENABLED
         if (_beacon == nullptr) {
-            _beacon = NEW_NOTHROW AP_DAL_Beacon;
+            _beacon = new AP_DAL_Beacon;
         }
         _beacon->handle_message(msg);
 #endif
@@ -309,7 +301,7 @@ public:
     void handle_message(const log_RBCI &msg) {
 #if AP_BEACON_ENABLED
         if (_beacon == nullptr) {
-            _beacon = NEW_NOTHROW AP_DAL_Beacon;
+            _beacon = new AP_DAL_Beacon;
         }
         _beacon->handle_message(msg);
 #endif
@@ -317,7 +309,7 @@ public:
     void handle_message(const log_RVOH &msg) {
 #if HAL_VISUALODOM_ENABLED
         if (_visualodom == nullptr) {
-            _visualodom = NEW_NOTHROW AP_DAL_VisualOdom;
+            _visualodom = new AP_DAL_VisualOdom;
         }
         _visualodom->handle_message(msg);
 #endif
@@ -366,9 +358,7 @@ private:
     AP_DAL_InertialSensor _ins;
     AP_DAL_Baro _baro;
     AP_DAL_GPS _gps;
-#if AP_RANGEFINDER_ENABLED
     AP_DAL_RangeFinder *_rangefinder;
-#endif
     AP_DAL_Compass _compass;
     AP_DAL_Airspeed *_airspeed;
 #if AP_BEACON_ENABLED

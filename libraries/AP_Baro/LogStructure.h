@@ -11,7 +11,6 @@
 // @Field: TimeUS: Time since system startup
 // @Field: I: barometer sensor instance number
 // @Field: Alt: calculated altitude
-// @Field: AltAMSL: altitude AMSL
 // @Field: Press: measured atmospheric pressure
 // @Field: Temp: measured atmospheric temperature
 // @Field: CRt: derived climb rate from primary barometer
@@ -24,7 +23,6 @@ struct PACKED log_BARO {
     uint64_t time_us;
     uint8_t instance;
     float   altitude;
-    float   altitude_AMSL;
     float   pressure;
     int16_t temperature;
     float   climbrate;
@@ -53,10 +51,10 @@ struct PACKED log_BARD {
 #define LOG_STRUCTURE_FROM_BARO                                         \
     { LOG_BARO_MSG, sizeof(log_BARO),                                   \
             "BARO",                                                     \
-            "Q"       "B"  "f"    "f"        "f"      "c"     "f"    "I"    "f"       "f"        "B", \
-            "TimeUS," "I," "Alt," "AltAMSL," "Press," "Temp," "CRt," "SMS," "Offset," "GndTemp," "Health", \
-            "s"       "#"  "m"    "m"        "P"      "O"     "n"    "s"    "m"       "O"        "-", \
-            "F"       "-"  "0"    "0"        "0"      "B"     "0"    "C"    "?"       "0"        "-", \
+            "Q"       "B"  "f"    "f"      "c"     "f"    "I"    "f"       "f"        "B", \
+            "TimeUS," "I," "Alt," "Press," "Temp," "CRt," "SMS," "Offset," "GndTemp," "Health", \
+            "s"       "#"  "m"    "P"      "O"     "n"    "s"    "m"       "O"        "-", \
+            "F"       "-"  "0"    "0"      "B"     "0"    "C"    "?"       "0"        "-", \
             true                                                        \
             },                                                          \
     { LOG_BARD_MSG, sizeof(log_BARD),                                   \

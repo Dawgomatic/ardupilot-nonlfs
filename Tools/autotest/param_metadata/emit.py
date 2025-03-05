@@ -19,6 +19,3 @@ class Emit:
 
     def emit(self, g):
         pass
-
-    def should_emit_field(self, param, field):
-        return field not in ['Legacy']

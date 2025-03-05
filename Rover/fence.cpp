@@ -25,17 +25,17 @@ void Rover::fence_check()
                 case FailsafeAction::None:
                     break;
                 case FailsafeAction::SmartRTL:
-                    if (set_mode(mode_smartrtl, ModeReason::FENCE_BREACHED)) {
+                    if (set_mode(mode_smartrtl, ModeReason::BATTERY_FAILSAFE)) {
                         break;
                     }
                     FALLTHROUGH;
                 case FailsafeAction::RTL:
-                    if (set_mode(mode_rtl, ModeReason::FENCE_BREACHED)) {
+                    if (set_mode(mode_rtl, ModeReason::BATTERY_FAILSAFE)) {
                         break;
                     }
                     FALLTHROUGH;
                 case FailsafeAction::Hold:
-                    set_mode(mode_hold, ModeReason::FENCE_BREACHED);
+                    set_mode(mode_hold, ModeReason::BATTERY_FAILSAFE);
                     break;
                 case FailsafeAction::SmartRTL_Hold:
                     if (!set_mode(mode_smartrtl, ModeReason::FENCE_BREACHED)) {

@@ -1,6 +1,6 @@
 #include "Copter.h"
 
-#if MODE_SMARTRTL_ENABLED
+#if MODE_SMARTRTL_ENABLED == ENABLED
 
 /*
  * Init and run calls for Smart_RTL flight mode

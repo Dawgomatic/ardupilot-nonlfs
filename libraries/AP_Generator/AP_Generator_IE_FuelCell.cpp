@@ -43,9 +43,11 @@ void AP_Generator_IE_FuelCell::update()
     const uint32_t now = AP_HAL::millis();
 
    // Read any available data
-    for (uint8_t i=0; i<30; i++) {  // process at most n bytes
-        uint8_t c;
-        if (!_uart->read(c)) {
+    uint32_t nbytes = MIN(_uart->available(),30u);
+    while (nbytes-- > 0) {
+        const int16_t c = _uart->read();
+        if (c < 0) {
+            // Nothing to decode
             break;
         }
 

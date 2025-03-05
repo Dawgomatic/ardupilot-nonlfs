@@ -41,7 +41,7 @@ void Compass::cal_update()
         return;
     } else if (_cal_has_run && _auto_reboot()) {
         hal.scheduler->delay(1000);
-        hal.scheduler->reboot();
+        hal.scheduler->reboot(false);
     }
 }
 
@@ -63,7 +63,7 @@ bool Compass::_start_calibration(uint8_t i, bool retry, float delay)
 #endif
     
     if (_calibrator[prio] == nullptr) {
-        _calibrator[prio] = NEW_NOTHROW CompassCalibrator();
+        _calibrator[prio] = new CompassCalibrator();
         if (_calibrator[prio] == nullptr) {
             GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "Compass cal object not initialised");
             return false;
@@ -504,7 +504,7 @@ bool Compass::get_uncorrected_field(uint8_t instance, Vector3f &field) const
 
   This assumes that the compass is correctly scaled in milliGauss
 */
-bool Compass::mag_cal_fixed_yaw(float yaw_deg, uint8_t compass_mask,
+MAV_RESULT Compass::mag_cal_fixed_yaw(float yaw_deg, uint8_t compass_mask,
                                       float lat_deg, float lon_deg, bool force_use)
 {
     _reset_compass_id();
@@ -514,7 +514,7 @@ bool Compass::mag_cal_fixed_yaw(float yaw_deg, uint8_t compass_mask,
         if (!AP::ahrs().get_location(loc)) {
             if (AP::gps().status() < AP_GPS::GPS_OK_FIX_3D) {
                 GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "Mag: no position available");
-                return false;
+                return MAV_RESULT_FAILED;
             }
             loc = AP::gps().location();
         }
@@ -528,7 +528,7 @@ bool Compass::mag_cal_fixed_yaw(float yaw_deg, uint8_t compass_mask,
     float inclination;
     if (!AP_Declination::get_mag_field_ef(lat_deg, lon_deg, intensity, declination, inclination)) {
         GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "Mag: WMM table error");
-        return false;
+        return MAV_RESULT_FAILED;
     }
 
     // create a field vector and rotate to the required orientation
@@ -553,13 +553,13 @@ bool Compass::mag_cal_fixed_yaw(float yaw_deg, uint8_t compass_mask,
         }
         if (!healthy(i)) {
             GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "Mag[%u]: unhealthy\n", i);
-            return false;
+            return MAV_RESULT_FAILED;
         }
 
         Vector3f measurement;
         if (!get_uncorrected_field(i, measurement)) {
             GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "Mag[%u]: bad uncorrected field", i);
-            return false;
+            return MAV_RESULT_FAILED;
         }
 
         Vector3f offsets = field - measurement;
@@ -572,7 +572,7 @@ bool Compass::mag_cal_fixed_yaw(float yaw_deg, uint8_t compass_mask,
 #endif
     }
 
-    return true;
+    return MAV_RESULT_ACCEPTED;
 }
 
 #endif  // AP_COMPASS_CALIBRATION_FIXED_YAW_ENABLED

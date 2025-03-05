@@ -23,7 +23,7 @@
 
 #define ESP32_SCHEDULER_MAX_TIMER_PROCS 10
 #define ESP32_SCHEDULER_MAX_IO_PROCS 10
-#define TWDT_TIMEOUT_MS 3000
+
 
 /* Scheduler implementation: */
 class ESP32::Scheduler : public AP_HAL::Scheduler
@@ -31,7 +31,6 @@ class ESP32::Scheduler : public AP_HAL::Scheduler
 
 public:
     Scheduler();
-    ~Scheduler();
     /* AP_HAL::Scheduler methods */
     void     init() override;
     void     set_callbacks(AP_HAL::HAL::Callbacks *cb)
@@ -70,18 +69,15 @@ public:
     static const int IO_PRIO = 6;
     static const int STORAGE_PRIO = 6; */
 
-      // configMAX_PRIORITIES=25
-
-
     static const int SPI_PRIORITY = 24; //      if your primary imu is spi, this should be above the i2c value, spi is better.
-    static const int MAIN_PRIO    = 24; //	cpu0: we want scheduler running at full tilt.
+    static const int MAIN_PRIO    = 22; //	cpu0: we want schuler running at full tilt.
     static const int I2C_PRIORITY = 5;  //      if your primary imu is i2c, this should be above the spi value, i2c is not preferred.
-    static const int TIMER_PRIO   = 23; //dont make 24. a low priority mere might cause wifi thruput to suffer
-    static const int RCIN_PRIO    = 5;
+    static const int TIMER_PRIO   = 22; //      a low priority mere might cause wifi thruput to suffer
+    static const int RCIN_PRIO    = 15;
     static const int RCOUT_PRIO   = 10;
     static const int WIFI_PRIO1   = 20; //cpu1:
     static const int WIFI_PRIO2   = 12; //cpu1:
-    static const int UART_PRIO    = 23; //dont make 24, scheduler suffers a bit. cpu1: a low priority mere might cause wifi thruput to suffer, as wifi gets passed its data frim the uart subsustem in _writebuf/_readbuf
+    static const int UART_PRIO    = 24; //cpu1: a low priority mere might cause wifi thruput to suffer, as wifi gets passed its data frim the uart subsustem in _writebuf/_readbuf
     static const int IO_PRIO      = 5;
     static const int STORAGE_PRIO = 4;
 
@@ -130,8 +126,6 @@ private:
     static void _print_profile(void* arg);
 
     static void test_esc(void* arg);
-
-    static void wdt_init(uint32_t timeout, uint32_t core_mask);
 
     bool _in_timer_proc;
     void _run_timers();

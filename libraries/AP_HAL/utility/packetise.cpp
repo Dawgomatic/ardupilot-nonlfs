@@ -2,10 +2,11 @@
   support for sending UDP packets on MAVLink packet boundaries.
  */
 
-#include "packetise.h"
+#include <GCS_MAVLink/GCS.h>
 
-#if AP_MAVLINK_PACKETISE_ENABLED
-#include <GCS_MAVLink/GCS_MAVLink.h>
+#if HAL_GCS_ENABLED
+
+#include "packetise.h"
 
 /*
   return the number of bytes to send for a packetised connection
@@ -67,4 +68,4 @@ uint16_t mavlink_packetise(ByteBuffer &writebuf, uint16_t n)
     return n;
 }
 
-#endif // AP_MAVLINK_PACKETISE_ENABLED
+#endif // HAL_GCS_ENABLED

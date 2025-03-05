@@ -134,7 +134,7 @@ void AP_FETtecOneWire::init()
     }
 
     // we have a uart and the desired ESC combination id valid, allocate some memory:
-    _escs = NEW_NOTHROW ESC[_esc_count];
+    _escs = new ESC[_esc_count];
     if (_escs == nullptr) {
         return;
     }

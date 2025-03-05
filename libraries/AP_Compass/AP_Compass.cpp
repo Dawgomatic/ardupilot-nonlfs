@@ -1,7 +1,3 @@
-#include "AP_Compass_config.h"
-
-#if AP_COMPASS_ENABLED
-
 #include <AP_HAL/AP_HAL.h>
 #if CONFIG_HAL_BOARD == HAL_BOARD_LINUX
 #include <AP_HAL_Linux/I2CDevice.h>
@@ -13,7 +9,6 @@
 #include <AP_ExternalAHRS/AP_ExternalAHRS.h>
 #include <AP_CustomRotations/AP_CustomRotations.h>
 #include <GCS_MAVLink/GCS.h>
-#include <AP_AHRS/AP_AHRS.h>
 
 #include "AP_Compass_config.h"
 
@@ -21,7 +16,6 @@
 #include "AP_Compass_AK8963.h"
 #include "AP_Compass_Backend.h"
 #include "AP_Compass_BMM150.h"
-#include "AP_Compass_BMM350.h"
 #include "AP_Compass_HMC5843.h"
 #include "AP_Compass_IST8308.h"
 #include "AP_Compass_IST8310.h"
@@ -99,7 +93,6 @@ const AP_Param::GroupInfo Compass::var_info[] = {
     // @Units: mGauss
     // @Increment: 1
     // @User: Advanced
-    // @Calibration: 1
     AP_GROUPINFO("OFS",    1, Compass, _state._priv_instance[0].offset, 0),
 
     // @Param: DEC
@@ -171,7 +164,6 @@ const AP_Param::GroupInfo Compass::var_info[] = {
     // @Units: mGauss/A
     // @Increment: 1
     // @User: Advanced
-    // @Calibration: 1
     AP_GROUPINFO("MOT",    7, Compass, _state._priv_instance[0].motor_compensation, 0),
 #endif
 
@@ -217,7 +209,6 @@ const AP_Param::GroupInfo Compass::var_info[] = {
     // @Units: mGauss
     // @Increment: 1
     // @User: Advanced
-    // @Calibration: 1
     AP_GROUPINFO("OFS2",    10, Compass, _state._priv_instance[1].offset, 0),
 
     // @Param: MOT2_X
@@ -245,7 +236,6 @@ const AP_Param::GroupInfo Compass::var_info[] = {
     // @Units: mGauss/A
     // @Increment: 1
     // @User: Advanced
-    // @Calibration: 1
     AP_GROUPINFO("MOT2",    11, Compass, _state._priv_instance[1].motor_compensation, 0),
 
 #endif // COMPASS_MAX_INSTANCES
@@ -276,7 +266,6 @@ const AP_Param::GroupInfo Compass::var_info[] = {
     // @Units: mGauss
     // @Increment: 1
     // @User: Advanced
-    // @Calibration: 1
     AP_GROUPINFO("OFS3",    13, Compass, _state._priv_instance[2].offset, 0),
 
     // @Param: MOT3_X
@@ -304,7 +293,6 @@ const AP_Param::GroupInfo Compass::var_info[] = {
     // @Units: mGauss/A
     // @Increment: 1
     // @User: Advanced
-    // @Calibration: 1
     AP_GROUPINFO("MOT3",    14, Compass, _state._priv_instance[2].motor_compensation, 0),
 #endif // COMPASS_MAX_INSTANCES
 
@@ -396,7 +384,6 @@ const AP_Param::GroupInfo Compass::var_info[] = {
     // @DisplayName: Compass soft-iron diagonal Z component
     // @Description: DIA_Z in the compass soft-iron calibration matrix: [[DIA_X, ODI_X, ODI_Y], [ODI_X, DIA_Y, ODI_Z], [ODI_Y, ODI_Z, DIA_Z]]
     // @User: Advanced
-    // @Calibration: 1
     AP_GROUPINFO("DIA",    24, Compass, _state._priv_instance[0].diagonals, 1.0),
 
     // @Param: ODI_X
@@ -415,7 +402,6 @@ const AP_Param::GroupInfo Compass::var_info[] = {
     // @DisplayName: Compass soft-iron off-diagonal Z component
     // @Description: ODI_Z in the compass soft-iron calibration matrix: [[DIA_X, ODI_X, ODI_Y], [ODI_X, DIA_Y, ODI_Z], [ODI_Y, ODI_Z, DIA_Z]]
     // @User: Advanced
-    // @Calibration: 1
     AP_GROUPINFO("ODI",    25, Compass, _state._priv_instance[0].offdiagonals, 0),
 
 #if COMPASS_MAX_INSTANCES > 1
@@ -435,7 +421,6 @@ const AP_Param::GroupInfo Compass::var_info[] = {
     // @DisplayName: Compass2 soft-iron diagonal Z component
     // @Description: DIA_Z in the compass2 soft-iron calibration matrix: [[DIA_X, ODI_X, ODI_Y], [ODI_X, DIA_Y, ODI_Z], [ODI_Y, ODI_Z, DIA_Z]]
     // @User: Advanced
-    // @Calibration: 1
     AP_GROUPINFO("DIA2",    26, Compass, _state._priv_instance[1].diagonals, 1.0),
 
     // @Param: ODI2_X
@@ -454,7 +439,6 @@ const AP_Param::GroupInfo Compass::var_info[] = {
     // @DisplayName: Compass2 soft-iron off-diagonal Z component
     // @Description: ODI_Z in the compass2 soft-iron calibration matrix: [[DIA_X, ODI_X, ODI_Y], [ODI_X, DIA_Y, ODI_Z], [ODI_Y, ODI_Z, DIA_Z]]
     // @User: Advanced
-    // @Calibration: 1
     AP_GROUPINFO("ODI2",    27, Compass, _state._priv_instance[1].offdiagonals, 0),
 #endif // COMPASS_MAX_INSTANCES
 
@@ -475,7 +459,6 @@ const AP_Param::GroupInfo Compass::var_info[] = {
     // @DisplayName: Compass3 soft-iron diagonal Z component
     // @Description: DIA_Z in the compass3 soft-iron calibration matrix: [[DIA_X, ODI_X, ODI_Y], [ODI_X, DIA_Y, ODI_Z], [ODI_Y, ODI_Z, DIA_Z]]
     // @User: Advanced
-    // @Calibration: 1
     AP_GROUPINFO("DIA3",    28, Compass, _state._priv_instance[2].diagonals, 1.0),
 
     // @Param: ODI3_X
@@ -494,7 +477,6 @@ const AP_Param::GroupInfo Compass::var_info[] = {
     // @DisplayName: Compass3 soft-iron off-diagonal Z component
     // @Description: ODI_Z in the compass3 soft-iron calibration matrix: [[DIA_X, ODI_X, ODI_Y], [ODI_X, DIA_Y, ODI_Z], [ODI_Y, ODI_Z, DIA_Z]]
     // @User: Advanced
-    // @Calibration: 1
     AP_GROUPINFO("ODI3",    29, Compass, _state._priv_instance[2].offdiagonals, 0),
 #endif // COMPASS_MAX_INSTANCES
 #endif // AP_COMPASS_DIAGONALS_ENABLED
@@ -529,7 +511,7 @@ const AP_Param::GroupInfo Compass::var_info[] = {
     // @Param: DISBLMSK
     // @DisplayName: Compass disable driver type mask
     // @Description: This is a bitmask of driver types to disable. If a driver type is set in this mask then that driver will not try to find a sensor at startup
-    // @Bitmask: 0:HMC5883,1:LSM303D,2:AK8963,3:BMM150,4:LSM9DS1,5:LIS3MDL,6:AK09916,7:IST8310,8:ICM20948,9:MMC3416,11:DroneCAN,12:QMC5883,14:MAG3110,15:IST8308,16:RM3100,17:MSP,18:ExternalAHRS,19:MMC5XX3,20:QMC5883P,21:BMM350
+    // @Bitmask: 0:HMC5883,1:LSM303D,2:AK8963,3:BMM150,4:LSM9DS1,5:LIS3MDL,6:AK09916,7:IST8310,8:ICM20948,9:MMC3416,11:DroneCAN,12:QMC5883,14:MAG3110,15:IST8308,16:RM3100,17:MSP,18:ExternalAHRS
     // @User: Advanced
     AP_GROUPINFO("DISBLMSK", 33, Compass, _driver_type_mask, 0),
 
@@ -745,7 +727,7 @@ void Compass::init()
 
     // convert to new custom rotation method
     // PARAMETER_CONVERSION - Added: Nov-2021
-#if AP_CUSTOMROTATIONS_ENABLED
+#if !APM_BUILD_TYPE(APM_BUILD_AP_Periph)
     for (StateIndex i(0); i<COMPASS_MAX_INSTANCES; i++) {
         if (_state[i].orientation != ROTATION_CUSTOM_OLD) {
             continue;
@@ -765,7 +747,7 @@ void Compass::init()
         }
         break;
     }
-#endif  // AP_CUSTOMROTATIONS_ENABLED
+#endif // !APM_BUILD_TYPE(APM_BUILD_AP_Periph)
 
 #if COMPASS_MAX_INSTANCES > 1
     // Look if there was a primary compass setup in previous version
@@ -1327,23 +1309,6 @@ void Compass::_probe_external_i2c_compasses(void)
         }
     }
 #endif // AP_COMPASS_BMM150_ENABLED
-
-#if AP_COMPASS_BMM350_ENABLED
-    // BMM350 on I2C
-    FOREACH_I2C_EXTERNAL(i) {
-        for (uint8_t addr=BMM350_I2C_ADDR_MIN; addr <= BMM350_I2C_ADDR_MAX; addr++) {
-            ADD_BACKEND(DRIVER_BMM350,
-                        AP_Compass_BMM350::probe(GET_I2C_DEVICE(i, addr), true, ROTATION_NONE));
-        }
-    }
-#if !defined(HAL_SKIP_AUTO_INTERNAL_I2C_PROBE)
-    FOREACH_I2C_INTERNAL(i) {
-        for (uint8_t addr=BMM350_I2C_ADDR_MIN; addr <= BMM350_I2C_ADDR_MAX; addr++) {
-            ADD_BACKEND(DRIVER_BMM350, AP_Compass_BMM350::probe(GET_I2C_DEVICE(i, addr), all_external, ROTATION_NONE));
-        }
-    }
-#endif
-#endif // AP_COMPASS_BMM350_ENABLED
 }
 
 /*
@@ -1354,7 +1319,7 @@ void Compass::_detect_backends(void)
 #if AP_COMPASS_EXTERNALAHRS_ENABLED
     const int8_t serial_port = AP::externalAHRS().get_port(AP_ExternalAHRS::AvailableSensor::COMPASS);
     if (serial_port >= 0) {
-        ADD_BACKEND(DRIVER_EXTERNALAHRS, NEW_NOTHROW AP_Compass_ExternalAHRS(serial_port));
+        ADD_BACKEND(DRIVER_EXTERNALAHRS, new AP_Compass_ExternalAHRS(serial_port));
     }
 #endif
     
@@ -1368,7 +1333,7 @@ void Compass::_detect_backends(void)
 #endif
 
 #if AP_COMPASS_SITL_ENABLED && !AP_TEST_DRONECAN_DRIVERS
-    ADD_BACKEND(DRIVER_SITL, NEW_NOTHROW AP_Compass_SITL());
+    ADD_BACKEND(DRIVER_SITL, new AP_Compass_SITL());
 #endif
 
 #if AP_COMPASS_DRONECAN_ENABLED
@@ -1387,7 +1352,7 @@ void Compass::_detect_backends(void)
 #if AP_COMPASS_MSP_ENABLED
     for (uint8_t i=0; i<8; i++) {
         if (msp_instance_mask & (1U<<i)) {
-            ADD_BACKEND(DRIVER_MSP, NEW_NOTHROW AP_Compass_MSP(i));
+            ADD_BACKEND(DRIVER_MSP, new AP_Compass_MSP(i));
         }
     }
 #endif
@@ -1592,7 +1557,7 @@ void Compass::probe_dronecan_compasses(void)
                 }
                 // We have found a replacement mag, let's replace the existing one
                 // with this by setting the priority to zero and calling uavcan probe
-                GCS_SEND_TEXT(MAV_SEVERITY_ALERT, "Mag: Compass #%d with DEVID %lu replaced", uint8_t(i), (unsigned long)_priority_did_list[i]);
+                gcs().send_text(MAV_SEVERITY_ALERT, "Mag: Compass #%d with DEVID %lu replaced", uint8_t(i), (unsigned long)_priority_did_list[i]);
                 _priority_did_stored_list[i].set_and_save(0);
                 _priority_did_list[i] = 0;
 
@@ -1774,7 +1739,7 @@ Compass::read(void)
 #if COMPASS_LEARN_ENABLED
     if (_learn == LEARN_INFLIGHT && !learn_allocated) {
         learn_allocated = true;
-        learn = NEW_NOTHROW CompassLearn(*this);
+        learn = new CompassLearn(*this);
     }
     if (_learn == LEARN_INFLIGHT && learn != nullptr) {
         learn->update();
@@ -2271,5 +2236,3 @@ Compass &compass()
 }
 
 }
-
-#endif  // AP_COMPASS_ENABLED

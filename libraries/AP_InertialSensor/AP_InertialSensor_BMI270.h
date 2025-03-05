@@ -115,6 +115,8 @@ private:
 
     enum Rotation _rotation;
 
+    uint8_t _accel_instance;
+    uint8_t _gyro_instance;
     uint8_t temperature_counter;
 
     static const uint8_t maximum_fifo_config_file[];

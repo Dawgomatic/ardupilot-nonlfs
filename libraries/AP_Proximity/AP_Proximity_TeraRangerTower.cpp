@@ -65,8 +65,8 @@ bool AP_Proximity_TeraRangerTower::read_sensor_data()
     int16_t nbytes = _uart->available();
 
     while (nbytes-- > 0) {
-        uint8_t c;
-        if (!_uart->read(c)) {
+        int16_t c = _uart->read();
+        if (c==-1) {
             return false;
         }
         if (char(c) == 'T' ) {

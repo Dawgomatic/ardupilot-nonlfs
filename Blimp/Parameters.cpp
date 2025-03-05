@@ -27,6 +27,7 @@ const AP_Param::Info Blimp::var_info[] = {
     // @DisplayName: Eeprom format version number
     // @Description: This value is incremented when changes are made to the eeprom format
     // @User: Advanced
+    // @ReadOnly: True
     GSCALAR(format_version, "FORMAT_VERSION",   0),
 
     // @Param: SYSID_THISMAV
@@ -57,10 +58,13 @@ const AP_Param::Info Blimp::var_info[] = {
     // @DisplayName: Throttle stick behavior
     // @Description: Bitmask containing various throttle stick options. TX with sprung throttle can set PILOT_THR_BHV to "1" so motor feedback when landed starts from mid-stick instead of bottom of stick.
     // @User: Standard
+    // @Values: 0:None,1:Feedback from mid stick,2:High throttle cancels landing,4:Disarm on land detection
     // @Bitmask: 0:Feedback from mid stick,1:High throttle cancels landing,2:Disarm on land detection
     GSCALAR(throttle_behavior, "PILOT_THR_BHV", 0),
 
-    // SerialManager was here
+    // @Group: SERIAL
+    // @Path: ../libraries/AP_SerialManager/AP_SerialManager.cpp
+    GOBJECT(serial_manager, "SERIAL",   AP_SerialManager),
 
     // @Param: TELEM_DELAY
     // @DisplayName: Telemetry startup delay
@@ -75,6 +79,7 @@ const AP_Param::Info Blimp::var_info[] = {
     // @DisplayName: GCS PID tuning mask
     // @Description: bitmask of PIDs to send MAVLink PID_TUNING messages for
     // @User: Advanced
+    // @Values: 0:None,1:VELX,2:VELY,4:VELZ,8:VELYAW,16:POSX,32:POSY,64:POSZ,128:POSYAW,15:Vel only,51:XY only,204:ZYaw only,240:Pos only,255:All
     // @Bitmask: 0:VELX,1:VELY,2:VELZ,3:VELYAW,4:POSX,5:POSY,6:POZ,7:POSYAW
     GSCALAR(gcs_pid_mask, "GCS_PID_MASK",     0),
 
@@ -260,6 +265,7 @@ const AP_Param::Info Blimp::var_info[] = {
     // @Param: DIS_MASK
     // @DisplayName: Disable output mask
     // @Description: Mask for disabling (setting to zero) one or more of the 4 output axis in mode Velocity or Loiter
+    // @Values: 0:All enabled,1:Right,2:Front,4:Down,8:Yaw,3:Down and Yaw only,12:Front & Right only
     // @Bitmask: 0:Right,1:Front,2:Down,3:Yaw
     // @User: Standard
     GSCALAR(dis_mask, "DIS_MASK", 0),
@@ -335,6 +341,12 @@ const AP_Param::Info Blimp::var_info[] = {
     // @Path: ../libraries/AP_AHRS/AP_AHRS.cpp
     GOBJECT(ahrs,                   "AHRS_",    AP_AHRS),
 
+#if HAL_LOGGING_ENABLED
+    // @Group: LOG
+    // @Path: ../libraries/AP_Logger/AP_Logger.cpp
+    GOBJECT(logger,           "LOG",  AP_Logger),
+#endif
+
     // @Group: BATT
     // @Path: ../libraries/AP_BattMonitor/AP_BattMonitor.cpp
     GOBJECT(battery,                "BATT",         AP_BattMonitor),
@@ -382,11 +394,9 @@ const AP_Param::Info Blimp::var_info[] = {
     GOBJECTN(ahrs.EKF3, NavEKF3, "EK3_", NavEKF3),
 #endif
 
-#if AP_RSSI_ENABLED
     // @Group: RSSI_
     // @Path: ../libraries/AP_RSSI/AP_RSSI.cpp
     GOBJECT(rssi, "RSSI_",  AP_RSSI),
-#endif
 
     // @Group: NTF_
     // @Path: ../libraries/AP_Notify/AP_Notify.cpp
@@ -770,7 +780,11 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("SYSID_ENFORCE", 11, ParametersG2, sysid_enforce, 0),
 
-    // 12 was AP_Stats
+#if STATS_ENABLED == ENABLED
+    // @Group: STAT
+    // @Path: ../libraries/AP_Stats/AP_Stats.cpp
+    AP_SUBGROUPINFO(stats, "STAT", 12, ParametersG2, AP_Stats),
+#endif
 
     // @Param: FRAME_CLASS
     // @DisplayName: Frame Class
@@ -797,7 +811,11 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("PILOT_SPEED_DN", 24, ParametersG2, pilot_speed_dn, 0),
 
-    // 30 was AP_Scripting
+#if AP_SCRIPTING_ENABLED
+    // @Group: SCR_
+    // @Path: ../libraries/AP_Scripting/AP_Scripting.cpp
+    AP_SUBGROUPINFO(scripting, "SCR_", 30, ParametersG2, AP_Scripting),
+#endif
 
     // @Param: FS_VIBE_ENABLE
     // @DisplayName: Vibration Failsafe enable
@@ -809,6 +827,7 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @Param: FS_OPTIONS
     // @DisplayName: Failsafe options bitmask
     // @Description: Bitmask of additional options for battery, radio, & GCS failsafes. 0 (default) disables all options.
+    // @Values: 0:Disabled, 16:Continue if in pilot controlled modes on GCS failsafe
     // @Bitmask: 4:Continue if in pilot controlled modes on GCS failsafe
     // @User: Advanced
     AP_GROUPINFO("FS_OPTIONS", 36, ParametersG2, fs_options, (float)Blimp::FailsafeOption::GCS_CONTINUE_IF_PILOT_CONTROL),
@@ -835,33 +854,27 @@ ParametersG2::ParametersG2(void)
 
 void Blimp::load_parameters(void)
 {
-    AP_Vehicle::load_parameters(g.format_version, Parameters::k_format_version);
+    hal.util->set_soft_armed(false);
 
-    static const AP_Param::G2ObjectConversion g2_conversions[] {
-#if AP_STATS_ENABLED
-    // PARAMETER_CONVERSION - Added: Jan-2024 for Copter-4.6
-        { &stats, stats.var_info, 12 },
-#endif
-#if AP_SCRIPTING_ENABLED
-    // PARAMETER_CONVERSION - Added: Jan-2024 for Copter-4.6
-        { &scripting, scripting.var_info, 30 },
-#endif
-    };
-    AP_Param::convert_g2_objects(&g2, g2_conversions, ARRAY_SIZE(g2_conversions));
+    if (!g.format_version.load() ||
+        g.format_version != Parameters::k_format_version) {
 
-    // PARAMETER_CONVERSION - Added: Feb-2024
-#if HAL_LOGGING_ENABLED
-    AP_Param::convert_class(g.k_param_logger, &logger, logger.var_info, 0, true);
-#endif
+        // erase all parameters
+        hal.console->printf("Firmware change: erasing EEPROM...\n");
+        StorageManager::erase();
+        AP_Param::erase_all();
 
-    static const AP_Param::TopLevelObjectConversion toplevel_conversions[] {
-#if AP_SERIALMANAGER_ENABLED
-        // PARAMETER_CONVERSION - Added: Feb-2024
-        { &serial_manager, serial_manager.var_info, Parameters::k_param_serial_manager_old },
-#endif
-    };
+        // save the current format version
+        g.format_version.set_and_save(Parameters::k_format_version);
+        hal.console->printf("done.\n");
+    }
+    g.format_version.set_default(Parameters::k_format_version);
 
-    AP_Param::convert_toplevel_objects(toplevel_conversions, ARRAY_SIZE(toplevel_conversions));
+    uint32_t before = micros();
+    // Load all auto-loaded EEPROM variables
+    AP_Param::load_all();
+
+    hal.console->printf("load_all took %uus\n", (unsigned)(micros() - before));
 
     // setup AP_Param frame type flags
     AP_Param::set_frame_type_flags(AP_PARAM_FRAME_BLIMP);

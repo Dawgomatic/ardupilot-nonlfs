@@ -17,7 +17,7 @@
 
 #include "GCS_config.h"
 
-#if AP_MAVLINK_FTP_ENABLED
+#if HAL_GCS_ENABLED
 
 #include <AP_HAL/AP_HAL.h>
 
@@ -48,7 +48,7 @@ bool GCS_MAVLINK::ftp_init(void) {
         return true;
     }
 
-    ftp.requests = NEW_NOTHROW ObjectBuffer<pending_ftp>(5);
+    ftp.requests = new ObjectBuffer<pending_ftp>(5);
     if (ftp.requests == nullptr || ftp.requests->get_size() == 0) {
         goto failed;
     }
@@ -63,7 +63,7 @@ bool GCS_MAVLINK::ftp_init(void) {
 failed:
     delete ftp.requests;
     ftp.requests = nullptr;
-    GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "failed to initialize MAVFTP");
+    gcs().send_text(MAV_SEVERITY_WARNING, "failed to initialize MAVFTP");
 
     return false;
 }
@@ -97,8 +97,12 @@ void GCS_MAVLINK::handle_file_transfer_protocol(const mavlink_message_t &msg) {
 
 bool GCS_MAVLINK::send_ftp_reply(const pending_ftp &reply)
 {
-    if (!last_txbuf_is_greater(33)) { // It helps avoid GCS timeout if this is less than the threshold where we slow down normal streams (<=49)
-        return false;
+    /*
+      provide same banner we would give with old param download
+    */
+    if (ftp.need_banner_send_mask & (1U<<reply.chan)) {
+        ftp.need_banner_send_mask &= ~(1U<<reply.chan);
+        send_banner();
     }
     WITH_SEMAPHORE(comm_chan_lock(reply.chan));
     if (!HAVE_PAYLOAD_SPACE(chan, FILE_TRANSFER_PROTOCOL)) {
@@ -117,6 +121,11 @@ bool GCS_MAVLINK::send_ftp_reply(const pending_ftp &reply)
         reply.chan,
         0, reply.sysid, reply.compid,
         payload);
+    if (reply.req_opcode == FTP_OP::TerminateSession) {
+        ftp.last_send_ms = 0;
+    } else {
+        ftp.last_send_ms = AP_HAL::millis();
+    }
     return true;
 }
 
@@ -146,24 +155,8 @@ void GCS_MAVLINK::ftp_error(struct pending_ftp &response, FTP_ERROR error) {
 // send our response back out to the system
 void GCS_MAVLINK::ftp_push_replies(pending_ftp &reply)
 {
-    ftp.last_send_ms = AP_HAL::millis(); // Used to detect active FTP session
-
     while (!send_ftp_reply(reply)) {
         hal.scheduler->delay(2);
-    }
-
-    if (reply.req_opcode == FTP_OP::TerminateSession) {
-        ftp.last_send_ms = 0;
-    }
-    /*
-      provide same banner we would give with old param download
-      Do this after send_ftp_reply() to get the first FTP response out sooner
-      on slow links to avoid GCS timeout.  The slowdown of normal streams in
-      get_reschedule_interval_ms() should help for subsequent responses.
-    */
-    if (ftp.need_banner_send_mask & (1U<<reply.chan)) {
-        ftp.need_banner_send_mask &= ~(1U<<reply.chan);
-        send_banner();
     }
 }
 
@@ -572,7 +565,7 @@ void GCS_MAVLINK::ftp_worker(void) {
                 case FTP_OP::TruncateFile:
                 default:
                     // this was bad data, just nack it
-                    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "Unsupported FTP: %d", static_cast<int>(request.opcode));
+                    gcs().send_text(MAV_SEVERITY_DEBUG, "Unsupported FTP: %d", static_cast<int>(request.opcode));
                     ftp_error(reply, FTP_ERROR::Fail);
                     break;
             }
@@ -588,23 +581,16 @@ void GCS_MAVLINK::ftp_worker(void) {
 
 // calculates how much string length is needed to fit this in a list response
 int GCS_MAVLINK::gen_dir_entry(char *dest, size_t space, const char *path, const struct dirent * entry) {
-#if AP_FILESYSTEM_HAVE_DIRENT_DTYPE
     const bool is_file = entry->d_type == DT_REG || entry->d_type == DT_LNK;
-#else
-    // assume true initially, then handle below
-    const bool is_file = true;
-#endif
 
     if (space < 3) {
         return -1;
     }
     dest[0] = 0;
 
-#if AP_FILESYSTEM_HAVE_DIRENT_DTYPE
     if (!is_file && entry->d_type != DT_DIR) {
         return -1; // this just forces it so we can't send this back, it's easier then sending skips to a GCS
     }
-#endif
 
     if (is_file) {
 #ifdef MAX_NAME_LEN
@@ -619,12 +605,6 @@ int GCS_MAVLINK::gen_dir_entry(char *dest, size_t space, const char *path, const
         if (AP::FS().stat(full_path, &st)) {
             return -1;
         }
-
-#if !AP_FILESYSTEM_HAVE_DIRENT_DTYPE
-        if (S_ISDIR(st.st_mode)) {
-            return hal.util->snprintf(dest, space, "D%s%c", entry->d_name, (char)0);
-        }
-#endif
         return hal.util->snprintf(dest, space, "F%s\t%u%c", entry->d_name, (unsigned)st.st_size, (char)0);
     } else {
         return hal.util->snprintf(dest, space, "D%s%c", entry->d_name, (char)0);
@@ -643,12 +623,6 @@ void GCS_MAVLINK::ftp_list_dir(struct pending_ftp &request, struct pending_ftp &
     }
 
     request.data[sizeof(request.data) - 1] = 0; // ensure the path is null terminated
-
-    // Strip trailing /
-    const size_t dir_len = strlen((char *)request.data);
-    if ((dir_len > 1) && (request.data[dir_len - 1] == '/')) {
-        request.data[dir_len - 1] = 0;
-    }
 
     // open the dir
     auto *dir = AP::FS().opendir((char *)request.data);
@@ -714,4 +688,4 @@ void GCS_MAVLINK::ftp_list_dir(struct pending_ftp &request, struct pending_ftp &
     AP::FS().closedir(dir);
 }
 
-#endif  // AP_MAVLINK_FTP_ENABLED
+#endif  // HAL_GCS_ENABLED

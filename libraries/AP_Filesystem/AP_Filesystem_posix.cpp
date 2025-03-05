@@ -24,31 +24,20 @@
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Vehicle/AP_Vehicle_Type.h>
 
-#if defined(__APPLE__) || defined(__OpenBSD__)
+#if defined(__APPLE__)
 #include <sys/mount.h>
-#elif CONFIG_HAL_BOARD != HAL_BOARD_QURT
+#else
 #include <sys/vfs.h>
 #endif
-
-#if AP_FILESYSTEM_POSIX_HAVE_UTIME
 #include <utime.h>
-#endif
 
 extern const AP_HAL::HAL& hal;
 
 /*
-  map a filename so operations are relative to the current directory if needed
+  map a filename for SITL so operations are relative to the current directory
  */
 static const char *map_filename(const char *fname)
 {
-#if AP_FILESYSTEM_POSIX_MAP_FILENAME_ALLOC
-    // this system needs to add a prefix to the filename, which means
-    // memory allocation. This is needed for QURT which lacks chdir()
-    char *fname2 = nullptr;
-    asprintf(&fname2, "%s/%s", AP_FILESYSTEM_POSIX_MAP_FILENAME_BASEDIR, fname);
-    return fname2;
-#else
-
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL && !APM_BUILD_TYPE(APM_BUILD_Replay)
     // on SITL only allow paths under subdirectory. Users can still
     // escape with .. if they want to
@@ -61,14 +50,6 @@ static const char *map_filename(const char *fname)
 #endif
     // on Linux allow original name
     return fname;
-#endif // AP_FILESYSTEM_POSIX_MAP_FILENAME_ALLOC
-}
-
-static void map_filename_free(const char *fname)
-{
-#if AP_FILESYSTEM_POSIX_MAP_FILENAME_ALLOC
-    ::free(const_cast<char*>(fname));
-#endif
 }
 
 int AP_Filesystem_Posix::open(const char *fname, int flags, bool allow_absolute_paths)
@@ -81,18 +62,10 @@ int AP_Filesystem_Posix::open(const char *fname, int flags, bool allow_absolute_
     if (::stat(fname, &st) == 0 &&
         ((st.st_mode & S_IFMT) != S_IFREG && (st.st_mode & S_IFMT) != S_IFLNK)) {
         // only allow links and files
-        if (!allow_absolute_paths) {
-            map_filename_free(fname);
-        }
         return -1;
     }
-
     // we automatically add O_CLOEXEC as we always want it for ArduPilot FS usage
-    auto ret = ::open(fname, flags | O_CLOEXEC, 0644);
-    if (!allow_absolute_paths) {
-        map_filename_free(fname);
-    }
-    return ret;
+    return ::open(fname, flags | O_CLOEXEC, 0644);
 }
 
 int AP_Filesystem_Posix::close(int fd)
@@ -115,14 +88,8 @@ int32_t AP_Filesystem_Posix::write(int fd, const void *buf, uint32_t count)
 
 int AP_Filesystem_Posix::fsync(int fd)
 {
-#if AP_FILESYSTEM_POSIX_HAVE_FSYNC
     FS_CHECK_ALLOWED(-1);
     return ::fsync(fd);
-#else
-    // we have to pass success here as otherwise it is assumed to be
-    // failed IO and the caller may close the fd and give up
-    return 0;
-#endif
 }
 
 int32_t AP_Filesystem_Posix::lseek(int fd, int32_t offset, int seek_from)
@@ -135,9 +102,7 @@ int AP_Filesystem_Posix::stat(const char *pathname, struct stat *stbuf)
 {
     FS_CHECK_ALLOWED(-1);
     pathname = map_filename(pathname);
-    auto ret = ::stat(pathname, stbuf);
-    map_filename_free(pathname);
-    return ret;
+    return ::stat(pathname, stbuf);
 }
 
 int AP_Filesystem_Posix::unlink(const char *pathname)
@@ -146,11 +111,10 @@ int AP_Filesystem_Posix::unlink(const char *pathname)
     pathname = map_filename(pathname);
     // we match the FATFS interface and use unlink
     // for both files and directories
-    int ret = ::rmdir(const_cast<char*>(pathname));
+    int ret = ::rmdir(pathname);
     if (ret == -1) {
         ret = ::unlink(pathname);
     }
-    map_filename_free(pathname);
     return ret;
 }
 
@@ -158,18 +122,14 @@ int AP_Filesystem_Posix::mkdir(const char *pathname)
 {
     FS_CHECK_ALLOWED(-1);
     pathname = map_filename(pathname);
-    auto ret = ::mkdir(const_cast<char*>(pathname), 0775);
-    map_filename_free(pathname);
-    return ret;
+    return ::mkdir(pathname, 0775);
 }
 
 void *AP_Filesystem_Posix::opendir(const char *pathname)
 {
     FS_CHECK_ALLOWED(nullptr);
     pathname = map_filename(pathname);
-    auto *ret = (void*)::opendir(pathname);
-    map_filename_free(pathname);
-    return ret;
+    return (void*)::opendir(pathname);
 }
 
 struct dirent *AP_Filesystem_Posix::readdir(void *dirp)
@@ -189,46 +149,31 @@ int AP_Filesystem_Posix::rename(const char *oldpath, const char *newpath)
     FS_CHECK_ALLOWED(-1);
     oldpath = map_filename(oldpath);
     newpath = map_filename(newpath);
-    auto ret = ::rename(oldpath, newpath);
-    map_filename_free(oldpath);
-    map_filename_free(newpath);
-    return ret;
+    return ::rename(oldpath, newpath);
 }
 
 // return free disk space in bytes
 int64_t AP_Filesystem_Posix::disk_free(const char *path)
 {
-#if AP_FILESYSTEM_POSIX_HAVE_STATFS
     FS_CHECK_ALLOWED(-1);
     path = map_filename(path);
     struct statfs stats;
     if (::statfs(path, &stats) < 0) {
-        map_filename_free(path);
         return -1;
     }
-    map_filename_free(path);
     return (((int64_t)stats.f_bavail) * stats.f_bsize);
-#else
-    return -1;
-#endif
 }
 
 // return total disk space in bytes
 int64_t AP_Filesystem_Posix::disk_space(const char *path)
 {
-#if AP_FILESYSTEM_POSIX_HAVE_STATFS
     FS_CHECK_ALLOWED(-1);
     path = map_filename(path);
     struct statfs stats;
     if (::statfs(path, &stats) < 0) {
-        map_filename_free(path);
         return -1;
     }
-    map_filename_free(path);
     return (((int64_t)stats.f_blocks) * stats.f_bsize);
-#else
-    return -1;
-#endif
 }
 
 
@@ -237,19 +182,13 @@ int64_t AP_Filesystem_Posix::disk_space(const char *path)
  */
 bool AP_Filesystem_Posix::set_mtime(const char *filename, const uint32_t mtime_sec)
 {
-#if AP_FILESYSTEM_POSIX_HAVE_UTIME
     FS_CHECK_ALLOWED(false);
     filename = map_filename(filename);
     struct utimbuf times {};
     times.actime = mtime_sec;
     times.modtime = mtime_sec;
 
-    auto ret = utime(filename, &times) == 0;
-    map_filename_free(filename);
-    return ret;
-#else
-    return false;
-#endif
+    return utime(filename, &times) == 0;
 }
 
 #endif  // AP_FILESYSTEM_POSIX_ENABLED

@@ -14,10 +14,6 @@
  */
 #pragma once
 
-#include "AP_Notify_config.h"
-
-#if AP_NOTIFY_NAVIGATOR_LED_ENABLED
-
 #include "RGBLed.h"
 #include <AP_Common/AP_Common.h>
 
@@ -34,5 +30,3 @@ private:
     void _setup_data(uint8_t red, uint8_t green, uint8_t blue);
     AP_HAL::OwnPtr<AP_HAL::SPIDevice> _dev;
 };
-
-#endif  // AP_NOTIFY_NAVIGATOR_LED_ENABLED

@@ -20,7 +20,8 @@ public:
 
     // Command a Quaternion attitude with feedforward and smoothing
     // attitude_desired_quat: is updated on each time_step (_dt) by the integral of the angular velocity
-    void input_quaternion(Quaternion& attitude_desired_quat, Vector3f ang_vel_body) override;
+    // not used anywhere in current code, panic so this implementation is not overlooked
+    void input_quaternion(Quaternion& attitude_desired_quat, Vector3f ang_vel_target) override;
     /*
         override input functions to attitude controller and convert desired angles into thrust angles and substitute for offset angles
     */

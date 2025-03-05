@@ -6,7 +6,7 @@ This library receives time history data (angular rate or angle) during a dwell t
 #include "AC_AutoTune_FreqResp.h"
 
 // Initialize the Frequency Response Object. Must be called before running dwell or frequency sweep tests
-void AC_AutoTune_FreqResp::init(InputType input_type, ResponseType response_type, uint8_t cycles)
+void AC_AutoTune_FreqResp::init(InputType input_type, ResponseType response_type)
 {
     excitation = input_type;
     response = response_type;
@@ -25,7 +25,6 @@ void AC_AutoTune_FreqResp::init(InputType input_type, ResponseType response_type
     max_accel = 0.0f;
     max_meas_rate = 0.0f;
     max_command = 0.0f;
-    dwell_cycles = cycles;
     meas_peak_info_buffer.clear();
     tgt_peak_info_buffer.clear();
     cycle_complete = false;
@@ -72,7 +71,7 @@ void AC_AutoTune_FreqResp::update(float command, float tgt_resp, float meas_resp
     }
 
     // cycles are complete! determine gain and phase and exit
-    if (max_meas_cnt > dwell_cycles + 1 && max_target_cnt > dwell_cycles + 1 && excitation == DWELL) {
+    if (max_meas_cnt > AUTOTUNE_DWELL_CYCLES + 1 && max_target_cnt > AUTOTUNE_DWELL_CYCLES + 1 && excitation == DWELL) {
         float delta_time = 0.0f;
         float sum_gain = 0.0f;
         uint8_t cnt = 0;
@@ -82,13 +81,14 @@ void AC_AutoTune_FreqResp::update(float command, float tgt_resp, float meas_resp
         float tgt_ampl = 0.0f;
         uint32_t meas_time = 0;
         uint32_t tgt_time = 0;
-        for (uint8_t i = 0;  i < dwell_cycles; i++) {
+        for (uint8_t i = 0;  i < AUTOTUNE_DWELL_CYCLES; i++) {
             meas_cnt=0;
             tgt_cnt=0;
             pull_from_meas_buffer(meas_cnt, meas_ampl, meas_time);
             pull_from_tgt_buffer(tgt_cnt, tgt_ampl, tgt_time);
             push_to_meas_buffer(0, 0.0f, 0);
             push_to_tgt_buffer(0, 0.0f, 0);
+            // gcs().send_text(MAV_SEVERITY_INFO, "AutoTune: tgt_cnt=%f meas_cnt=%f", (double)(tgt_cnt), (double)(meas_cnt));
 
             if (meas_cnt == tgt_cnt && meas_cnt != 0) {
                 if (tgt_ampl > 0.0f) {
@@ -106,7 +106,8 @@ void AC_AutoTune_FreqResp::update(float command, float tgt_resp, float meas_resp
             } else if (meas_cnt < tgt_cnt) {
                 pull_from_meas_buffer(meas_cnt, meas_ampl, meas_time);
                 push_to_meas_buffer(0, 0.0f, 0);
-            }        
+            }                
+
         }
         if (gcnt > 0) {
             curr_test_gain = sum_gain / gcnt;
@@ -134,6 +135,7 @@ void AC_AutoTune_FreqResp::update(float command, float tgt_resp, float meas_resp
 
         curr_test_freq = tgt_freq;
         cycle_complete = true;
+        // gcs().send_text(MAV_SEVERITY_INFO, "AutoTune: cycles completed");
         return;
     }
 
@@ -153,9 +155,7 @@ void AC_AutoTune_FreqResp::update(float command, float tgt_resp, float meas_resp
             sweep_tgt.count_m1 = min_target_cnt - 1;
             sweep_tgt.amplitude_m1 = temp_tgt_ampl;
             temp_tgt_ampl = temp_max_target - temp_min_target;
-            if (excitation == DWELL) {
-                push_to_tgt_buffer(min_target_cnt,temp_tgt_ampl,temp_max_tgt_time);
-            }
+            push_to_tgt_buffer(min_target_cnt,temp_tgt_ampl,temp_max_tgt_time);
         }
 
     } else if (((response == ANGLE && !is_positive(prev_target) && is_positive(target_rate))
@@ -184,9 +184,8 @@ void AC_AutoTune_FreqResp::update(float command, float tgt_resp, float meas_resp
             sweep_meas.count_m1 = min_meas_cnt - 1;
             sweep_meas.amplitude_m1 = temp_meas_ampl;
             temp_meas_ampl = temp_max_meas - temp_min_meas;
-            if (excitation == DWELL) {
-                push_to_meas_buffer(min_meas_cnt,temp_meas_ampl,temp_max_meas_time);
-            }
+            push_to_meas_buffer(min_meas_cnt,temp_meas_ampl,temp_max_meas_time);
+
             if (excitation == SWEEP) {
                 float tgt_period = 0.001f * (temp_max_tgt_time - sweep_tgt.max_time_m1);
                 if (!is_zero(tgt_period)) {
@@ -283,6 +282,7 @@ void AC_AutoTune_FreqResp::push_to_tgt_buffer(uint16_t count, float amplitude, u
     sample.amplitude = amplitude;
     sample.time_ms = time_ms;
     tgt_peak_info_buffer.push(sample);
+
 }
 
 // pull target peak info from buffer
@@ -297,4 +297,3 @@ void AC_AutoTune_FreqResp::pull_from_tgt_buffer(uint16_t &count, float &amplitud
     amplitude = sample.amplitude;
     time_ms = sample.time_ms;
 }
-

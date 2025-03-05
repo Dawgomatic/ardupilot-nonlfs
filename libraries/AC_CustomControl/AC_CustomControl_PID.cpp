@@ -1,9 +1,7 @@
-#include "AC_CustomControl_config.h"
-
-#if AP_CUSTOMCONTROL_PID_ENABLED
-
 #include "AC_CustomControl_PID.h"
 #include "AC_AttitudeControl/AC_AttitudeControl_Multi.h"
+
+#if CUSTOMCONTROL_PID_ENABLED
 
 // table of user settable parameters
 const AP_Param::GroupInfo AC_CustomControl_PID::var_info[] = {
@@ -405,4 +403,4 @@ void AC_CustomControl_PID::set_notch_sample_rate(float sample_rate)
 #endif
 }
 
-#endif  // AP_CUSTOMCONTROL_PID_ENABLED
+#endif

@@ -114,7 +114,7 @@ void GPIO_BBB::toggle(uint8_t pin)
 
 /* Alternative interface: */
 AP_HAL::DigitalSource* GPIO_BBB::channel(uint16_t n) {
-    return NEW_NOTHROW DigitalSource(n);
+    return new DigitalSource(n);
 }
 
 bool GPIO_BBB::usb_connected(void)

@@ -25,7 +25,6 @@
 #include "WiFiUdpDriver.h"
 #include "RCInput.h"
 #include "RCOutput.h"
-#include "GPIO.h"
 #include "Storage.h"
 #include "AnalogIn.h"
 #include "Util.h"
@@ -33,14 +32,13 @@
 #include <AP_HAL/SIMState.h>
 #endif
 
+
 static ESP32::UARTDriver cons(0);
 #ifdef HAL_ESP32_WIFI
 #if HAL_ESP32_WIFI == 1
 static ESP32::WiFiDriver serial1Driver; //tcp, client should connect to 192.168.4.1 port 5760
 #elif HAL_ESP32_WIFI == 2
 static ESP32::WiFiUdpDriver serial1Driver; //udp
-#else
-static Empty::UARTDriver serial1Driver;
 #endif
 #else
 static Empty::UARTDriver serial1Driver;
@@ -70,7 +68,7 @@ static Empty::Storage storageDriver;
 #else
 static ESP32::Storage storageDriver;
 #endif
-static ESP32::GPIO gpioDriver;
+static Empty::GPIO gpioDriver;
 #if AP_SIM_ENABLED
 static Empty::RCOutput rcoutDriver;
 #else

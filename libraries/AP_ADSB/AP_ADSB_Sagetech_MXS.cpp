@@ -621,10 +621,8 @@ void AP_ADSB_Sagetech_MXS::send_gps_msg()
     const float speed_knots = speed.length() * M_PER_SEC_TO_KNOTS;
     snprintf((char*)&gps.grdSpeed, 7, "%03u.%02u", (unsigned)speed_knots, unsigned((speed_knots - (int)speed_knots) * 1.0E2));
 
-    if (!is_zero(speed_knots)) {
-        cog = wrap_360(degrees(speed.angle()));
-    }
-    snprintf((char*)&gps.grdTrack, 9, "%03u.%04u", unsigned(cog), unsigned((cog - (int)cog) * 1.0E4));
+    const float heading = wrap_360(degrees(speed.angle()));
+    snprintf((char*)&gps.grdTrack, 9, "%03u.%04u", unsigned(heading), unsigned((heading - (int)heading) * 1.0E4));
 
 
     gps.latNorth = (latitude >= 0 ? true: false);
@@ -635,8 +633,7 @@ void AP_ADSB_Sagetech_MXS::send_gps_msg()
     uint64_t time_usec = ap_gps.epoch_from_rtc_us;
     if (ap_gps.have_epoch_from_rtc_us) {
         const time_t time_sec = time_usec * 1E-6;
-        struct tm tmd {};
-        struct tm* tm = gmtime_r(&time_sec, &tmd);
+        struct tm* tm = gmtime(&time_sec);
 
         snprintf((char*)&gps.timeOfFix, 11, "%02u%02u%06.3f", tm->tm_hour, tm->tm_min, tm->tm_sec + (time_usec % 1000000) * 1.0e-6);
     } else {

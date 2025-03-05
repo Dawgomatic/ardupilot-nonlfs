@@ -62,14 +62,14 @@ float ADCSource::read_latest() {
 
 bool ADCSource::set_pin(uint8_t pin) {
     _pin = pin;
-    return pin != ANALOG_INPUT_NONE;
+    return true;
 }
 
 void AnalogIn::init() {
 }
 
 AP_HAL::AnalogSource* AnalogIn::channel(int16_t pin) {
-    return NEW_NOTHROW ADCSource(_sitlState, pin);
+    return new ADCSource(_sitlState, pin);
 }
 
 #endif

@@ -109,12 +109,7 @@ void LoggerMessageWriter_DFLogStart::process()
     case Stage::FORMATS:
         // write log formats so the log is self-describing
         while (next_format_to_send < _logger_backend->num_types()) {
-            const auto &s { _logger_backend->structure(next_format_to_send) };
-            if (_logger_backend->have_emitted_format_for_type((LogMessages)s->msg_type)) {
-                next_format_to_send++;
-                continue;
-            }
-            if (!_logger_backend->Write_Format(s)) {
+            if (!_logger_backend->Write_Format(_logger_backend->structure(next_format_to_send))) {
                 return; // call me again!
             }
             next_format_to_send++;
@@ -182,30 +177,40 @@ void LoggerMessageWriter_DFLogStart::process()
         stage = Stage::RUNNING_SUBWRITERS;
         FALLTHROUGH;
 
-    case Stage::RUNNING_SUBWRITERS: {
-        LoggerMessageWriter *subwriters[] {
-            &_writesysinfo,
-#if AP_MISSION_ENABLED
-            &_writeentiremission,
-#endif
-#if HAL_LOGGER_RALLY_ENABLED
-            &_writeallrallypoints,
-#endif
-#if HAL_LOGGER_FENCE_ENABLED
-            &_writeallpolyfence,
-#endif
-        };
-        for (auto *sw : subwriters) {
-            if (!sw->finished()) {
-                sw->process();
-                if (!sw->finished()) {
-                    return;
-                }
+    case Stage::RUNNING_SUBWRITERS:
+        if (!_writesysinfo.finished()) {
+            _writesysinfo.process();
+            if (!_writesysinfo.finished()) {
+                return;
             }
         }
+#if AP_MISSION_ENABLED
+        if (!_writeentiremission.finished()) {
+            _writeentiremission.process();
+            if (!_writeentiremission.finished()) {
+                return;
+            }
+        }
+#endif
+#if HAL_LOGGER_RALLY_ENABLED
+        if (!_writeallrallypoints.finished()) {
+            _writeallrallypoints.process();
+            if (!_writeallrallypoints.finished()) {
+                return;
+            }
+        }
+#endif
+#if HAL_LOGGER_FENCE_ENABLED
+        if (!_writeallpolyfence.finished()) {
+            _writeallpolyfence.process();
+            if (!_writeallpolyfence.finished()) {
+                return;
+            }
+        }
+#endif
         stage = Stage::VEHICLE_MESSAGES;
         FALLTHROUGH;
-    }
+
     case Stage::VEHICLE_MESSAGES:
         // we guarantee 200 bytes of space for the vehicle startup
         // messages.  This allows them to be simple functions rather
@@ -437,7 +442,7 @@ void LoggerMessageWriter_WriteEntireMission::process() {
             // upon failure to write the mission we will re-read from
             // storage; this could be improved.
             if (_mission->read_cmd_from_storage(_mission_number_to_send,cmd)) {
-                if (!_logger_backend->Write_Mission_Cmd(*_mission, cmd, LOG_CMD_MSG)) {
+                if (!_logger_backend->Write_Mission_Cmd(*_mission, cmd)) {
                     return; // call me again
                 }
             }

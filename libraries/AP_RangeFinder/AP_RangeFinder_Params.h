@@ -1,9 +1,5 @@
 #pragma once
 
-#include "AP_RangeFinder_config.h"
-
-#if AP_RANGEFINDER_ENABLED
-
 #include <AP_Param/AP_Param.h>
 #include <AP_Math/AP_Math.h>
 
@@ -31,5 +27,3 @@ public:
     AP_Int8  address;
     AP_Int8  orientation;
 };
-
-#endif  // AP_RANGEFINDER_ENABLED

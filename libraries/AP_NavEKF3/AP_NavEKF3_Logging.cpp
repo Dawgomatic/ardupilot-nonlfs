@@ -100,10 +100,7 @@ void NavEKF3_core::Log_Write_XKFS(uint64_t time_us) const
         baro_index     : selected_baro,
         gps_index      : selected_gps,
         airspeed_index : getActiveAirspeed(),
-        source_set     : frontend->sources.getPosVelYawSourceSet(),
-        gps_good_to_align : gpsGoodToAlign,
-        wait_for_gps_checks : waitingForGpsChecks,
-        mag_fusion: (uint8_t) magFusionSel
+        source_set     : frontend->sources.getPosVelYawSourceSet()
     };
     AP::logger().WriteBlock(&pkt, sizeof(pkt));
 }
@@ -202,11 +199,7 @@ void NavEKF3_core::Log_Write_XKF5(uint64_t time_us) const
         offset : (int16_t)(100*terrainState),           // filter ground offset state error
         RI : (int16_t)(100*innovRng),                   // range finder innovations
         meaRng : (uint16_t)(100*rangeDataDelayed.rng),  // measured range
-#if EK3_FEATURE_OPTFLOW_FUSION
         errHAGL : (uint16_t)(100*sqrtF(Popt)),          // note Popt is constrained to be non-negative in EstimateTerrainOffset()
-#else
-        errHAGL : 0,          // note Popt is constrained to be non-negative in EstimateTerrainOffset()
-#endif
         angErr : (float)outputTrackError.x,             // output predictor angle error
         velErr : (float)outputTrackError.y,             // output predictor velocity error
         posErr : (float)outputTrackError.z              // output predictor position tracking error
@@ -245,8 +238,7 @@ void NavEKF3_core::Log_Write_Beacon(uint64_t time_us)
     }
 
     // Ensure that beacons are not skipped due to calling this function at a rate lower than the updates
-    if (rngBcn.fuseDataReportIndex >= rngBcn.N ||
-        rngBcn.fuseDataReportIndex > rngBcn.numFusionReports) {
+    if (rngBcn.fuseDataReportIndex >= rngBcn.N) {
         rngBcn.fuseDataReportIndex = 0;
     }
 

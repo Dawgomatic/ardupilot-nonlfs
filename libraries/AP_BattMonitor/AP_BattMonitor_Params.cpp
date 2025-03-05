@@ -1,7 +1,3 @@
-#include "AP_BattMonitor_config.h"
-
-#if AP_BATTERY_ENABLED
-
 #include <AP_Common/AP_Common.h>
 #include <AP_Vehicle/AP_Vehicle_Type.h>
 #include "AP_BattMonitor_Params.h"
@@ -103,7 +99,7 @@ const AP_Param::GroupInfo AP_BattMonitor_Params::var_info[] = {
 
     // @Param: CRT_MAH
     // @DisplayName: Battery critical capacity
-    // @Description: Battery capacity at which the critical battery failsafe is triggered. Set to 0 to disable battery remaining failsafe. If the battery capacity drops below this level the vehicle will perform the failsafe specified by the @PREFIX@FS_CRT_ACT parameter.
+    // @Description: Battery capacity at which the critical battery failsafe is triggered. Set to 0 to disable battery remaining failsafe. If the battery capacity drops below this level the vehicle will perform the failsafe specified by the @PREFIX@_FS_CRT_ACT parameter.
     // @Units: mAh
     // @Increment: 50
     // @User: Standard
@@ -143,7 +139,7 @@ const AP_Param::GroupInfo AP_BattMonitor_Params::var_info[] = {
 
     // @Param: ARM_MAH
     // @DisplayName: Required arming remaining capacity
-    // @Description: Battery capacity remaining which is required to arm the aircraft. Set to 0 to allow arming at any capacity. Note that execept for smart batteries rebooting the vehicle will always reset the remaining capacity estimate, which can lead to this check not providing sufficent protection, it is recommended to always use this in conjunction with the @PREFIX@ARM_VOLT parameter.
+    // @Description: Battery capacity remaining which is required to arm the aircraft. Set to 0 to allow arming at any capacity. Note that execept for smart batteries rebooting the vehicle will always reset the remaining capacity estimate, which can lead to this check not providing sufficent protection, it is recommended to always use this in conjunction with the @PREFIX@_ARM_VOLT parameter.
     // @Units: mAh
     // @Increment: 50
     // @User: Advanced
@@ -154,7 +150,7 @@ const AP_Param::GroupInfo AP_BattMonitor_Params::var_info[] = {
     // @Param: OPTIONS
     // @DisplayName: Battery monitor options
     // @Description: This sets options to change the behaviour of the battery monitor
-    // @Bitmask: 0:Ignore DroneCAN SoC, 1:MPPT reports input voltage and current, 2:MPPT Powered off when disarmed, 3:MPPT Powered on when armed, 4:MPPT Powered off at boot, 5:MPPT Powered on at boot, 6:Send resistance compensated voltage to GCS, 7:Allow DroneCAN InfoAux to be from a different CAN node, 8:Battery is for internal autopilot use only, 9:Sum monitor measures minimum voltage instead of average
+    // @Bitmask: 0:Ignore DroneCAN SoC, 1:MPPT reports input voltage and current, 2:MPPT Powered off when disarmed, 3:MPPT Powered on when armed, 4:MPPT Powered off at boot, 5:MPPT Powered on at boot, 6:Send resistance compensated voltage to GCS, 7:Allow DroneCAN InfoAux to be from a different CAN node
     // @User: Advanced
     AP_GROUPINFO("OPTIONS", 21, AP_BattMonitor_Params, _options, 0),
 #endif // HAL_BUILD_AP_PERIPH
@@ -176,5 +172,3 @@ const AP_Param::GroupInfo AP_BattMonitor_Params::var_info[] = {
 AP_BattMonitor_Params::AP_BattMonitor_Params(void) {
     AP_Param::setup_object_defaults(this, var_info);
 }
-
-#endif  // AP_BATTERY_ENABLED
