@@ -37,6 +37,7 @@
 *.vrx
 *.zip
 *.png
+*.PNG
 !Tools/autotest/tilecache/**/*.zip
 *~
 .*.swo
